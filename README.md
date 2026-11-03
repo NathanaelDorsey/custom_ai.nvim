@@ -135,6 +135,8 @@ All AI keymaps use `<leader>a` as a prefix (except toggle which uses `<leader>.`
 | Key | Scope | Action |
 |-----|-------|--------|
 | `<leader>.` | Global | Toggle AI chat window |
+| `<leader>am` | Global | Switch AI model |
+| `<leader>ar` | Global | Refresh model detection |
 | `<leader>as` | Buffer-local | Send message (text only) |
 | `<leader>av` | Buffer-local | Send message + image (vision models) |
 | `<leader>af` | Buffer-local | Ask AI about current file |
