@@ -167,7 +167,3 @@ All AI keymaps use `<leader>a` as a prefix (except toggle which uses `<leader>.`
 - A running `llama-server` instance (from [llama.cpp](https://github.com/ggerganov/llama.cpp))
 - `curl` available in PATH
 - `bash` available for starting server scripts
-
-## License
-
-MIT
