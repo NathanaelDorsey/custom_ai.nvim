@@ -74,6 +74,7 @@ local defaults = {
   test_commands = {
     python = "python3 %",
     bash   = "bash %",
+    java   = "javac % && java ${1:r}",
     node   = "node %",
     go     = "go run %",
     rust   = "rustc % && ./${1:r}",
