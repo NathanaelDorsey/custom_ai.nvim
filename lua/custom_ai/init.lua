@@ -300,7 +300,7 @@ function M.check_server_on_startup()
       table.insert(lines, "  " .. script .. "  # " .. key)
     end
     table.insert(lines, "")
-    table.insert(lines, "Then use <leader>. to open chat, or <leader>am to switch models.")
+    table.insert(lines, "Then use <leader>. to open chat. Inside chat: <leader>am to switch models.")
     vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Local AI" })
   end
 end

@@ -132,21 +132,19 @@ require("custom_ai").setup({
 
 ## Keymaps (default)
 
-All AI keymaps use `<leader>a` as a prefix (except toggle which uses `<leader>.`). Keymaps are split into **global** (work from any buffer) and **buffer-local** (only work inside the AI chat window):
+All AI keymaps use `<leader>a` as a prefix (except toggle which uses `<leader>.`). Keymaps are **buffer-local** (only work inside the AI chat window):
 
-| Key | Scope | Action |
-|-----|-------|--------|
-| `<leader>.` | Global | Toggle AI chat window |
-| `<leader>am` | Global | Switch AI model |
-| `<leader>ar` | Global | Refresh model detection |
-| `<leader>as` | Buffer-local | Send message (text only) |
-| `<leader>av` | Buffer-local | Send message + image (vision models) |
-| `<leader>af` | Buffer-local | Ask AI about current file |
-| `<leader>ae` | Buffer-local | Edit whole file with AI |
-| `<leader>ah` | Buffer-local | AI edit highlighted/visual selection |
-| `<leader>at` | Buffer-local | Run tests → AI analysis |
-| `<leader>ai` | Buffer-local | Show startup scripts reminder |
-| `<leader>an` | Buffer-local | New chat (clear history) |
+| Key | Action |
+|-----|--------|
+| `<leader>.` | Toggle AI chat window (global) |
+| `<leader>as` | Send message (text only) |
+| `<leader>av` | Send message + image (vision models) |
+| `<leader>af` | Ask AI about current file |
+| `<leader>ae` | Edit whole file with AI |
+| `<leader>ah` | AI edit highlighted/visual selection |
+| `<leader>at` | Run tests → AI analysis |
+| `<leader>ai` | Show startup scripts reminder |
+| `<leader>an` | New chat (clear history) |
 
 **Lua functions** (call via `:lua require("custom_ai").function_name()`):
 
