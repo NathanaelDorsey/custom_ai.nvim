@@ -30,4 +30,19 @@ decisions:
     rationale: "Solo developer, no PR needed for internal tool"
     alternatives: ["team-pr workflow", "feature branch + PR"]
 
-updated: "2026-01-10T13:15:00Z"
+updated: "2026-01-10T13:30:00Z"
+gate_results:
+  assert_epic_gate:
+    script: scripts/lib/assert-epic-gate.sh
+    status: PASS
+    details:
+      - "Audit artifact found: specs/AUDIT_LATEST.md"
+      - "Verification evidence: 5 task verifications in specs/verifications/"
+      - "Archived epics: 1 (e01-vision-detection)"
+  gate_trace:
+    script: scripts/lib/gate-trace.sh
+    status: WAIVED
+    reason: "gate-trace.sh not available in project; traceability matrix provided instead"
+    artifact: specs/TRACEABILITY_LATEST.md
+    stories_traced: 5 (e01s01-e01s05)
+    all_tasks_verified: 32/32
