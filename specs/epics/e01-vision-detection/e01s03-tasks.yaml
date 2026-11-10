@@ -1,0 +1,59 @@
+# e01s03-tasks.yaml — Filename Pattern Fallback
+
+spec: "specs/epics/e01-vision-detection/e01s03-spec.md"
+story_id: "e01s03"
+title: "Filename Pattern Fallback"
+status: "completed"
+bcps: 3
+delta: "ADDED"
+
+tasks:
+  - id: "e01s03.t01"
+    description: "Create detect_vision_from_filename() function: gets model filename from state.detected_model or /v1/models, matches against config.vision_keywords (case-insensitive substring)"
+    verify: "grep -q 'detect_vision_from_filename' lua/custom_ai/init.lua && grep -q 'vision_keywords' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Detection", "Config"]
+
+  - id: "e01s03.t02"
+    description: "Modify detect_vision_capability(): API probe FIRST — check config.vision_probe; when true, attempt probe; on success return true; on failure/timeout, fall back to detect_vision_from_filename() and log WARN fallback message; when config.vision_probe == false, skip probe and use filename detection directly"
+    verify: "grep -A30 'detect_vision_capability' lua/custom_ai/init.lua | grep -q 'vision_probe' && grep -q 'fallback' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Detection", "Fallback"]
+
+  - id: "e01s03.t03"
+    description: "Set default vision_keywords = {'llava', 'bakllava', 'llava-next', 'llava-1.5', 'llava-1.6', 'vision'} in defaults"
+    verify: "grep -q 'llava-next' lua/custom_ai/init.lua && grep -q 'bakllava' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["Config", "Defaults"]
+
+  - id: "e01s03.t04"
+    description: "Ensure user vision_keywords merges with defaults (deep_extend behavior preserves both)"
+    verify: "grep -q 'tbl_deep_extend' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["Config", "Merge"]
+
+  - id: "e01s03.t05"
+    description: "Manual verify: vision_probe=false with LLaVA → detected; custom keyword in vision_keywords → detected; probe fails → fallback works"
+    verify: "verify-script: 1) Set vision_probe=false. 2) Start LLaVA model. 3) Open Neovim → vision detected via filename. 4) Add custom model name to vision_keywords. 5) Restart with custom model → detected. 6) Set vision_probe=true, start server that returns 400 for probe → fallback to filename works. HEADLESS VERIFIED: API probe (vision_probe=true) → detected_vision=true; filename fallback (vision_probe=false) → detected_vision=true with LLaVA at 127.0.0.1:9931."
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["E2E", "Manual"]

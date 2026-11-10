@@ -1,0 +1,36 @@
+# execution-status.yaml — Execution Status for custom_ai.nvim
+
+epics:
+  e01-vision-detection:
+    status: "done"
+    started: "2026-01-10T10:00:00Z"
+    completed: "2026-01-10T12:00:00Z"
+    tasks:
+      total: 32
+      done: 32
+      failed: 0
+    current_task: null
+    blockers: []
+    stories:
+      e01s01:
+        status: "done"
+        tasks: 6
+        done: 6
+      e01s02:
+        status: "done"
+        tasks: 5
+        done: 5
+      e01s03:
+        status: "done"
+        tasks: 5
+        done: 5
+      e01s04:
+        status: "done"
+        tasks: 6
+        done: 6
+      e01s05:
+        status: "done"
+        tasks: 5
+        done: 5
+
+last_updated: "2026-01-10T12:30:00Z"

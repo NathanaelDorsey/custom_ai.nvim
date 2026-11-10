@@ -1,0 +1,47 @@
+story_id: e01s01
+title: "Tracer Bullet: Vision Detection at Startup"
+verified_at: "2026-01-10T12:30:00Z"
+verifier: audit-code + verify-work
+worktree: "main repo root (consolidated implementation)"
+branch: "feature/agent-vision-detection"
+phases:
+  smoke:
+    passed: true
+    note: "Headless Neovim 0.12.6 loaded consolidated module; check_server_on_startup() calls detect_vision_capability(); server at 127.0.0.1:9931 detected LLaVA-Next"
+  build:
+    passed: true
+    note: "N/A — Lua plugin, no build step"
+  typecheck:
+    passed: true
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+  lint:
+    passed: true
+    note: "N/A — Lua plugin, no lint step"
+  tests:
+    passed: true
+    note: "Manual E2E via headless Neovim; all static verify commands pass; headless E2E with LLaVA model confirms detected_vision=true"
+  terminal_verdict:
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+    captured_at: "2026-01-10T12:30:00Z"
+    note: "Single run — syntax OK"
+  manual:
+    steps:
+      - step: "Start Neovim with vision model (LLaVA) running on 127.0.0.1:9931"
+        expected: "Notification shows 'Vision: enabled'"
+        actual: "Notification shows 'Vision: enabled'"
+        passed: true
+      - step: "verify detect_vision_capability() uses API probe first, filename fallback"
+        expected: "API probe with image_url runs first; filename keywords used on failure"
+        actual: "detect_vision_via_probe() sends image_url; detect_vision_from_filename() matches vision_keywords"
+        passed: true
+  gaps:
+    closed: true
+acceptance:
+  t01: passing
+  t02: passing
+  t03: passing
+  t04: passing
+  t05: passing
+  t06: passing

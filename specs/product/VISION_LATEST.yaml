@@ -1,0 +1,26 @@
+# VISION_LATEST.yaml — Product Vision for custom_ai.nvim
+
+project: custom_ai.nvim
+
+vision: |
+  The go-to Neovim plugin for developers who run local LLMs via llama.cpp.
+  Zero-config by default, infinitely configurable when needed.
+  Stays out of your way — just a floating chat window that works.
+
+principles:
+  - Local-first: Your code never leaves your machine
+  - Model-agnostic: Works with any OpenAI-compatible llama.cpp server
+  - Single responsibility: Chat + code editing + test analysis, nothing more
+  - Async always: Never freeze Neovim
+  - User controls the server: Plugin manages lifecycle, user provides scripts
+
+target_users:
+  - Neovim users with local GPU running llama.cpp
+  - Developers who switch between specialized models (coding, vision, general)
+  - Privacy-conscious developers avoiding cloud APIs
+
+success_metrics:
+  - Chat opens in < 100ms
+  - Model switch completes in < 5s (server restart + health check)
+  - Zero blocking operations
+  - Configurable without editing plugin source

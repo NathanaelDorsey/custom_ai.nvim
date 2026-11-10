@@ -1,0 +1,69 @@
+# e01s01-tasks.yaml — Tracer Bullet: Vision Detection at Startup
+
+spec: "specs/epics/e01-vision-detection/e01s01-spec.md"
+story_id: "e01s01"
+title: "Tracer Bullet: Vision Detection at Startup"
+status: "completed"
+bcps: 5
+delta: "ADDED"
+
+tasks:
+  - id: "e01s01.t01"
+    description: "Add vision_probe = true and vision_keywords defaults to defaults table in init.lua"
+    verify: "grep -q 'vision_probe = true' lua/custom_ai/init.lua && grep -q 'vision_keywords' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["Config", "Startup"]
+
+  - id: "e01s01.t02"
+    description: "Add state.detected_vision = false to state table"
+    verify: "grep -q 'detected_vision = false' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["State"]
+
+  - id: "e01s01.t03"
+    description: "Create detect_vision_capability() function: sends minimal test request to /v1/chat/completions with dummy image_url (1x1 transparent PNG base64), 500ms timeout"
+    verify: "grep -q 'detect_vision_capability' lua/custom_ai/init.lua && grep -q 'image_url' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P1"
+    security: "low"
+    allure:
+      severity: "high"
+      categories: ["API", "Vision"]
+
+  - id: "e01s01.t04"
+    description: "Integrate vision detection into check_server_on_startup(): call detect_vision_capability() after model detection when config.vision_probe is true"
+    verify: "grep -A10 'check_server_on_startup' lua/custom_ai/init.lua | grep -q 'detect_vision_capability'"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Startup", "Integration"]
+
+  - id: "e01s01.t05"
+    description: "Update check_server_on_startup notification to include vision status line"
+    verify: "grep -A15 'check_server_on_startup' lua/custom_ai/init.lua | grep -q 'Vision:'"
+    status: "passing"
+    risk: "P3"
+    security: "none"
+    allure:
+      severity: "minor"
+      categories: ["UI", "Notification"]
+
+  - id: "e01s01.t06"
+    description: "Manual verify: Start Neovim with vision model → notification shows 'Vision: enabled'; with text model → 'Vision: disabled'"
+    verify: "verify-script: 1) Start llama-server with LLaVA model. 2) Open Neovim. 3) Check notification shows 'Vision: enabled'. 4) Restart with text model. 5) Check notification shows 'Vision: disabled'."
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["E2E", "Manual"]

@@ -1,0 +1,42 @@
+# GLOSSARY_LATEST.yaml — Ubiquitous Language for custom_ai.nvim
+
+terms:
+  - term: "llama.cpp server"
+    definition: "Local HTTP server (port 9931) serving OpenAI-compatible /v1/chat/completions and /v1/models endpoints"
+    aliases: ["llama-server", "server", "local AI"]
+
+  - term: "model key"
+    definition: "Short identifier in config.models (e.g., 'allrounder', 'coder', 'vision') mapping to display name and startup script"
+    aliases: ["model_id", "key"]
+
+  - term: "startup script"
+    definition: "User-provided shell script that starts llama-server with specific model/gguf file"
+    aliases: ["script", "server script"]
+
+  - term: "chat buffer"
+    definition: "Read-only Neovim buffer displaying conversation history in floating window"
+    aliases: ["chat window", "AI chat"]
+
+  - term: "message queue"
+    definition: "FIFO queue of pending AI requests processed sequentially to prevent overlap"
+    aliases: ["queue", "request queue"]
+
+  - term: "vision model"
+    definition: "Multimodal model (e.g., LLaVA) accepting image_url content parts alongside text"
+    aliases: ["multimodal model", "LLaVA"]
+
+  - term: "auto-detection"
+    definition: "Querying /v1/models on startup to match running model filename to config key"
+    aliases: ["model detection", "detect"]
+
+  - term: "model switch"
+    definition: "Kill current server, start new server via script, verify health, update config"
+    aliases: ["switch model", "change model"]
+
+  - term: "selection editing"
+    definition: "AI edits only the visually highlighted text, using full file as context"
+    aliases: ["visual edit", "partial edit"]
+
+  - term: "test analysis"
+    definition: "Run test command, truncate output to key failures, send to AI for fix suggestions"
+    aliases: ["test review", "AI test analysis"]

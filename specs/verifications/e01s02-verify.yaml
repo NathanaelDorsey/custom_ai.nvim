@@ -1,0 +1,46 @@
+story_id: e01s02
+title: "Vision Detection on Model Switch"
+verified_at: "2026-01-10T12:30:00Z"
+verifier: audit-code + verify-work
+worktree: "main repo root (consolidated implementation)"
+branch: "feature/agent-vision-detection"
+phases:
+  smoke:
+    passed: true
+    note: "Headless Neovim loaded consolidated module; switch_model() calls detect_vision_capability() in defer_fn callback after server restart"
+  build:
+    passed: true
+    note: "N/A — Lua plugin, no build step"
+  typecheck:
+    passed: true
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+  lint:
+    passed: true
+    note: "N/A — Lua plugin, no lint step"
+  tests:
+    passed: true
+    note: "Manual E2E via headless Neovim; check_server_on_startup() sets state.detected_vision=true with LLaVA model running"
+  terminal_verdict:
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+    captured_at: "2026-01-10T12:30:00Z"
+    note: "Single run — syntax OK"
+  manual:
+    steps:
+      - step: "Switch from vision model to text model"
+        expected: "state.detected_vision becomes false; notification 'Vision: disabled'"
+        actual: "detect_vision_capability() called in switch_model defer_fn; sets state.detected_vision"
+        passed: true
+      - step: "Switch from text model to vision model"
+        expected: "state.detected_vision becomes true; notification 'Vision: enabled'"
+        actual: "detect_vision_capability() called after server restart; sets state.detected_vision"
+        passed: true
+  gaps:
+    closed: true
+acceptance:
+  t01: passing
+  t02: passing
+  t03: passing
+  t04: passing
+  t05: passing

@@ -1,0 +1,46 @@
+story_id: e01s03
+title: "Filename Pattern Fallback"
+verified_at: "2026-01-10T12:30:00Z"
+verifier: audit-code + verify-work
+worktree: "main repo root (consolidated implementation)"
+branch: "feature/agent-vision-detection"
+phases:
+  smoke:
+    passed: true
+    note: "Headless Neovim loaded consolidated module; detect_vision_capability() probes API first, falls back to filename patterns"
+  build:
+    passed: true
+    note: "N/A — Lua plugin, no build step"
+  typecheck:
+    passed: true
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+  lint:
+    passed: true
+    note: "N/A — Lua plugin, no lint step"
+  tests:
+    passed: true
+    note: "Headless E2E: vision_probe=true → detected_vision=true (API probe); vision_probe=false → detected_vision=true (filename fallback)"
+  terminal_verdict:
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+    captured_at: "2026-01-10T12:30:00Z"
+    note: "Single run — syntax OK"
+  manual:
+    steps:
+      - step: "vision_probe=true with LLaVA model running"
+        expected: "detected_vision == true via API probe"
+        actual: "PASS — API probe detects multimodal capability"
+        passed: true
+      - step: "vision_probe=false with LLaVA model running"
+        expected: "detected_vision == true via filename fallback"
+        actual: "PASS — filename matches 'llava' in vision_keywords"
+        passed: true
+  gaps:
+    closed: true
+acceptance:
+  t01: passing
+  t02: passing
+  t03: passing
+  t04: passing
+  t05: passing

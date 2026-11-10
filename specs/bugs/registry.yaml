@@ -1,0 +1,18 @@
+# registry.yaml — Bug Registry for custom_ai.nvim
+
+bugs: []
+# Format when bugs exist:
+# - id: "BUG-001"
+#   title: "Short descriptive title"
+#   severity: "critical|high|medium|low"
+#   status: "open|investigating|fixing|verifying|closed"
+#   reported: "2025-01-10T10:00:00Z"
+#   component: "chat|server|edit|vision|test|config"
+#   description: "Detailed description of the bug"
+#   reproduction: "Steps to reproduce"
+#   root_cause: "Root cause analysis (filled after investigate-bug)"
+#   fix_plan: "Link to fix plan or commit"
+#   fixed: "2025-01-12T15:30:00Z"
+#   verified: "2025-01-12T16:00:00Z"
+
+next_id: 1

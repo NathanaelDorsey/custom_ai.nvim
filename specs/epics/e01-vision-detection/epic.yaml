@@ -1,0 +1,38 @@
+# epic.yaml — Vision Capability Detection Epic
+
+epic_id: "e01"
+slug: "vision-detection"
+title: "Vision Capability Detection"
+wsjf: 85
+bcp_baseline: 21
+status: "completed"
+created: "2025-01-10"
+
+stories:
+  - id: "e01s01"
+    title: "Tracer Bullet: Vision Detection at Startup"
+    bcps: 5
+    delta: "ADDED"
+    description: "API probe at startup sets state.detected_vision; config.vision_probe defaults to true"
+  - id: "e01s02"
+    title: "Vision Detection on Model Switch"
+    bcps: 3
+    delta: "ADDED"
+    description: "Reuse detection logic in switch_model; update state.detected_vision after server restart"
+  - id: "e01s03"
+    title: "Filename Pattern Fallback"
+    bcps: 3
+    delta: "ADDED"
+    description: "config.vision_keywords patterns used when API probe fails or disabled"
+  - id: "e01s04"
+    title: "Keymap Gating & Warning"
+    bcps: 5
+    delta: "ADDED"
+    description: "Disable <leader>av keymap when vision unavailable; warn on vision attempt"
+  - id: "e01s05"
+    title: "Config Schema Extension & Defaults"
+    bcps: 2
+    delta: "ADDED"
+    description: "Add vision_keywords (array), vision_probe (bool) to config with LLaVA defaults"
+
+total_bcps: 18

@@ -1,0 +1,31 @@
+# release-plan.yaml — Release Plan for custom_ai.nvim
+
+version: "0.1.0"
+workflow_mode: "solo-git"
+
+epics:
+  - id: "e01"
+    slug: "vision-detection"
+    title: "Vision Capability Detection"
+    wsjf: 85
+    bcp: 18
+    status: "completed"
+    tasks_ref: "epics/e01-vision-detection/"
+
+releases:
+  - version: "0.1.0"
+    target_date: "2025-01-15"
+    epics: []
+    baseline: "initial"
+    notes: "Initial release — core chat, model switch, vision, edit, test analysis"
+  - version: "0.2.0"
+    target_date: "2025-02-01"
+    epics:
+      - "e01"
+    baseline: "0.1.0"
+    notes: "Add automatic vision capability detection with keymap gating"
+
+# Semantic versioning:
+# MAJOR: Breaking config/API changes
+# MINOR: New features (new keymaps, new commands)
+# PATCH: Bug fixes, internal refactors

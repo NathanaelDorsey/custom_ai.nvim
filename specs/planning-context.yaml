@@ -1,0 +1,33 @@
+feature_name: "vision-capability-detection"
+problem_statement: |
+  The plugin currently has hardcoded "vision" key matching for LLaVA models but no generic capability detection.
+  Users cannot reliably use vision features (image upload via <leader>av) unless they manually select the "vision" model key.
+  Need automatic detection of vision capability at model switch/startup, with configurable behavior when vision is unavailable.
+
+constraints:
+  - Must work with any llama.cpp model (not just predefined 5 keys)
+  - Detection at startup and on model switch
+  - Configurable fallback behavior
+  - No breaking changes to existing config schema
+  - Async/non-blocking (consistent with plugin architecture)
+
+out_of_scope:
+  - Streaming response support
+  - Multi-model concurrent serving
+  - Automatic model download/install
+  - Remote server management
+
+key_decisions:
+  - decision: "Use filename-based detection as primary, API probe as optional fallback"
+    rationale: "Filename detection is instant, reliable for known patterns, and doesn't require network round-trip. API probe adds latency and complexity."
+  - decision: "Store capability in state.detected_vision (runtime) with config.vision_keywords for patterns"
+    rationale: "Separates user config from runtime detection. Allows user to extend patterns without code changes."
+  - decision: "Disable vision keymap and show warning when vision unavailable"
+    rationale: "Fail fast with clear feedback. User can still send text; image upload gracefully degrades to text-only with warning."
+
+questions_for_review:
+  - "Detection approach: filename patterns (config-driven) vs API probe vs both? Recommendation: filename primary, config-extensible."
+  - "When non-vision model: disable keymap + warning, or auto-fallback to text-only? Recommendation: disable keymap, warn on attempt."
+  - "Capability state location: state.detected_vision (runtime) + config.vision_keywords (patterns)?"
+  - "Support for custom models beyond default 5? Recommendation: yes, via config.vision_keywords patterns."
+  - "API probe failure handling: assume no vision, warn user? Recommendation: assume no vision, log warning."

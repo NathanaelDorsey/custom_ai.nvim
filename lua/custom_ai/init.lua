@@ -61,6 +61,10 @@ local defaults = {
   max_tokens  = 4096,
   top_p       = 0.8,
 
+  -- Vision detection: API probe on/off + filename-fallback keyword patterns
+  vision_probe = true,
+  vision_keywords = { "llava", "bakllava", "llava-next", "llava-1.5", "llava-1.6", "vision" },
+
   -- Startup scripts: key -> shell command (run in terminal to start llama-server)
   scripts = {
     allrounder = "./llm-allrounder.sh",
@@ -106,6 +110,7 @@ local state = {
   queue = {},
   sending = false,
   detected_model = nil,
+  detected_vision = false,
   server_pid = nil,
   current_model_key = nil,
 }
@@ -257,17 +262,162 @@ local function detect_running_model()
 
         if matched then
           state.detected_model = key
-          return key, name
+          return key, name, model_id
         end
       end
 
       state.detected_model = model_id
-      return model_id, model_id
+      return model_id, model_id, model_id
     end
   end
 
   state.detected_model = nil
-  return nil, "no model running"
+  return nil, "no model running", nil
+end
+
+-- Strip path and .gguf extension from a model id, returning the bare filename
+local function parse_model_filename(model_id)
+  if not model_id or model_id == "" then return nil end
+  local filename = model_id:match("([^/]+)%.gguf$") or model_id:match("([^/]+)$")
+  if not filename or filename == "" then return nil end
+  return filename:gsub("%.gguf$", "")
+end
+
+-- Asynchronously fetch the running model id from GET /v1/models
+local function fetch_model_id(on_complete)
+  vim.system({ "curl", "-s", "-m", "2", models_url() }, { text = true }, function(result)
+    vim.schedule(function()
+      local model_id = nil
+      if result.code == 0 and result.stdout and result.stdout ~= "" then
+        local ok, data = pcall(vim.json.decode, result.stdout)
+        if ok and data and data.data and data.data[1] and data.data[1].id then
+          model_id = data.data[1].id
+        end
+      end
+      on_complete(model_id)
+    end)
+  end)
+end
+
+-- Detect vision capability from the model filename using config.vision_keywords.
+-- Strips path and .gguf extension, then does a case-insensitive substring
+-- match against each keyword (both lowered). Returns result via on_complete(vision_ok).
+-- If model_id is not provided, fetches it asynchronously from /v1/models.
+local function detect_vision_from_filename(model_id, on_complete)
+  if not model_id or model_id == "" then
+    fetch_model_id(function(fetched)
+      detect_vision_from_filename(fetched, on_complete)
+    end)
+    return
+  end
+
+  local filename = parse_model_filename(model_id)
+  if not filename or filename == "" then
+    if on_complete then on_complete(false) end
+    return
+  end
+
+  local filename_lower = filename:lower()
+  for _, keyword in ipairs(config.vision_keywords or {}) do
+    if filename_lower:find(keyword:lower(), 1, true) then
+      if on_complete then on_complete(true) end
+      return
+    end
+  end
+  if on_complete then on_complete(false) end
+end
+
+-- Build a minimal vision probe payload with a dummy image_url content part
+local function probe_request_payload(model_id)
+  local dummy_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+  return vim.json.encode({
+    model = model_id,
+    messages = {
+      { role = "user", content = { { type = "image_url", image_url = { url = dummy_image } } } },
+    },
+    stream = false,
+    max_tokens = 1,
+  })
+end
+
+-- Write JSON payload to a temp file, return the path or nil
+local function write_temp_json(payload)
+  local tmp_file = vim.fn.tempname() .. "_vision_probe.json"
+  local f = io.open(tmp_file, "w")
+  if not f then return nil end
+  f:write(payload)
+  f:close()
+  return tmp_file
+end
+
+-- POST probe payload to the chat API asynchronously; invoke on_complete(vision_ok)
+local function make_probe_request(payload, on_complete)
+  local tmp_file = write_temp_json(payload)
+  if not tmp_file then
+    vim.schedule(function() on_complete(false) end)
+    return
+  end
+
+  vim.system(
+    { "curl", "-s", "-X", "POST", api_url(), "-H", "Content-Type: application/json", "-d", "@" .. tmp_file },
+    { text = true, timeout = 500 },
+    function(result)
+      vim.schedule(function()
+        os.remove(tmp_file)
+
+        local vision_ok = false
+        if result.code == 0 and result.stdout and result.stdout ~= "" then
+          local ok, data = pcall(vim.json.decode, result.stdout)
+          if ok and data and not data.error and data.choices then
+            vision_ok = true
+          end
+        end
+        on_complete(vision_ok)
+      end)
+    end
+  )
+end
+
+-- Probe vision capability via the API: sends a minimal chat request with a
+-- dummy image_url content part. Runs asynchronously via vim.system callback.
+-- Invokes on_complete(vision_ok) when the probe settles.
+local function detect_vision_via_probe(model_id, on_complete)
+  local payload = probe_request_payload(model_id)
+  make_probe_request(payload, on_complete)
+end
+
+-- Detect vision capability: API probe first, filename fallback second.
+--   config.vision_probe == true  → probe API; on success return true
+--                                 on failure/timeout → warn + filename fallback
+--   config.vision_probe == false → skip probe, warn + filename fallback
+-- Sets state.detected_vision and invokes on_complete(vision_ok).
+local function detect_vision_capability(model_id, on_complete)
+  local function use_fallback()
+    vim.notify("custom_ai.nvim: Using filename fallback for vision detection", vim.log.levels.WARN)
+    detect_vision_from_filename(model_id, function(vision)
+      state.detected_vision = vision
+      if on_complete then on_complete(vision) end
+    end)
+  end
+
+  if not model_id then
+    state.detected_vision = false
+    if on_complete then on_complete(false) end
+    return
+  end
+
+  if config.vision_probe == false then
+    return use_fallback()
+  end
+
+  detect_vision_via_probe(model_id, function(vision_ok)
+    if vision_ok then
+      state.detected_vision = true
+      if on_complete then on_complete(true) end
+    else
+      use_fallback()
+    end
+  end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -275,7 +425,7 @@ end
 -- ---------------------------------------------------------------------------
 
 function M.check_server_on_startup()
-  local key, name = detect_running_model()
+  local key, name, model_id = detect_running_model()
   if key then
     for k, v in pairs(config.models) do
       if v == name or name:find(k) then
@@ -287,6 +437,13 @@ function M.check_server_on_startup()
     if not config.default_model:find(name) then
       config.default_model = name
     end
+
+    -- Detect vision capability (API probe first, filename fallback)
+    detect_vision_capability(model_id, function(has_vision)
+      state.detected_vision = has_vision
+      vim.notify("custom_ai.nvim: Vision: " .. (has_vision and "enabled" or "disabled"), vim.log.levels.INFO)
+    end)
+
     vim.notify("custom_ai.nvim: Server detected: " .. config.default_model, vim.log.levels.INFO)
   else
     config.default_model = "no model running"
@@ -300,7 +457,7 @@ function M.check_server_on_startup()
       table.insert(lines, "  " .. script .. "  # " .. key)
     end
     table.insert(lines, "")
-    table.insert(lines, "Then use <leader>. to open chat. Inside chat: <leader>am to switch models.")
+    table.insert(lines, "Vision: disabled")
     vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Local AI" })
   end
 end
@@ -358,6 +515,28 @@ function M.switch_model()
           "======================",
         })
       end
+
+      -- Re-detect vision capability once the new server is up
+      vim.defer_fn(function()
+        local fresh_key, fresh_name, fresh_model_id = detect_running_model()
+        if fresh_key then
+          state.detected_model = fresh_key
+        end
+        detect_vision_capability(fresh_model_id, function(has_vision)
+          state.detected_vision = has_vision
+          vim.notify("custom_ai.nvim: Vision: " .. (has_vision and "enabled" or "disabled"), vim.log.levels.INFO)
+          -- Refresh chat header vision status (SF-1)
+          if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+            M.write_to_buf(state.buf, state.win, {
+              "Vision: " .. (has_vision and "enabled" or "disabled"),
+            })
+          end
+          -- Rebind keymaps for open chat window
+          if state.buf and vim.api.nvim_buf_is_valid(state.buf) and state.win and vim.api.nvim_win_is_valid(state.win) then
+            setup_keymaps(state.buf, state.win, state.messages, state.detected_vision)
+          end
+        end)
+      end, 3000)
     else
       vim.notify("custom_ai.nvim: Invalid selection", vim.log.levels.WARN)
     end
@@ -590,7 +769,7 @@ end
 -- Keymaps
 -- ---------------------------------------------------------------------------
 
-local function setup_keymaps(buf, win, messages)
+local function setup_keymaps(buf, win, messages, detected_vision)
   local km = config.keymaps
 
   -- Send message (text only)
@@ -609,44 +788,51 @@ local function setup_keymaps(buf, win, messages)
   end, { buffer = buf })
 
   -- Send message with image (for vision models like LLaVA-NeXT)
-  vim.keymap.set("n", km.vision_msg, function()
-    vim.ui.input({ prompt = "You: " }, function(user_input)
-      if not user_input or user_input == "" then return end
+  -- Bound only when the running model supports vision; otherwise shows a warning
+  if detected_vision then
+    vim.keymap.set("n", km.vision_msg, function()
+      vim.ui.input({ prompt = "You: " }, function(user_input)
+        if not user_input or user_input == "" then return end
 
-      vim.ui.input({ prompt = "Image path: " }, function(img_path)
-        if not img_path or img_path == "" then
-          vim.notify("custom_ai.nvim: No image path given — sending text only", vim.log.levels.WARN)
-          M.send_prompt(user_input, function(response)
+        vim.ui.input({ prompt = "Image path: " }, function(img_path)
+          if not img_path or img_path == "" then
+            vim.notify("custom_ai.nvim: No image path given — sending text only", vim.log.levels.WARN)
+            M.send_prompt(user_input, function(response)
+              if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
+              M.write_to_buf(buf, win, { "", "You: " .. user_input .. " [no image]", "AI: ..." })
+              M.write_to_buf(buf, win, { "AI: " .. response, "" })
+              vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
+            end, messages)
+            return
+          end
+
+          local data_url = image_to_data_url(img_path)
+          if not data_url then return end
+
+          local content_parts = {
+            { type = "text", text = user_input },
+            { type = "image_url", image_url = { url = data_url } },
+          }
+
+          M.write_to_buf(buf, win, {
+            "", "You: " .. user_input,
+            "  [image: " .. img_path .. "]",
+            "AI: ...",
+          })
+
+          M.send_prompt(content_parts, function(response)
             if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
-            M.write_to_buf(buf, win, { "", "You: " .. user_input .. " [no image]", "AI: ..." })
             M.write_to_buf(buf, win, { "AI: " .. response, "" })
             vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
           end, messages)
-          return
-        end
-
-        local data_url = image_to_data_url(img_path)
-        if not data_url then return end
-
-        local content_parts = {
-          { type = "text", text = user_input },
-          { type = "image_url", image_url = { url = data_url } },
-        }
-
-        M.write_to_buf(buf, win, {
-          "", "You: " .. user_input,
-          "  [image: " .. img_path .. "]",
-          "AI: ...",
-        })
-
-        M.send_prompt(content_parts, function(response)
-          if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
-          M.write_to_buf(buf, win, { "AI: " .. response, "" })
-          vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
-        end, messages)
+        end)
       end)
-    end)
-  end, { buffer = buf })
+    end, { buffer = buf })
+  else
+    vim.keymap.set("n", km.vision_msg, function()
+      vim.notify("Vision not supported by current model. Switch to a vision-capable model (e.g., LLaVA) to use image upload.", vim.log.levels.WARN)
+    end, { buffer = buf })
+  end
 
   -- New chat
   vim.keymap.set("n", km.new_chat, function()
@@ -659,10 +845,12 @@ local function setup_keymaps(buf, win, messages)
 
     local new_buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_name(new_buf, "AI Chat")
+    local detected_vision = state.detected_vision
     vim.api.nvim_buf_set_lines(new_buf, 0, -1, false, {
       "=== AI Chat (llama.cpp) ===",
       "Server: " .. api_url(),
       "Model: " .. tostring(config.default_model),
+      "Vision: " .. (detected_vision and "enabled" or "disabled"),
       "Press '" .. km.send_msg .. "' to send a message",
       "Press '<leader>av' to send a message + image (vision)",
       "Press '" .. km.edit_code .. "' to edit code in place",
@@ -683,7 +871,7 @@ local function setup_keymaps(buf, win, messages)
     })
 
     state.messages = {}
-    setup_keymaps(new_buf, new_win, state.messages)
+    setup_keymaps(new_buf, new_win, state.messages, detected_vision)
 
     vim.api.nvim_set_option_value("modifiable", false, { buf = new_buf })
     vim.api.nvim_set_option_value("readonly", true, { buf = new_buf })
@@ -730,6 +918,11 @@ end
 function M.chat()
   M.refresh_model()
 
+  -- Re-detect vision capability for the current model (SF-2a)
+  detect_vision_capability(state.detected_model, function(has_vision)
+    state.detected_vision = has_vision
+  end)
+
   if state.win and vim.api.nvim_win_is_valid(state.win) then
     if vim.api.nvim_get_current_win() == state.win then
       pcall(vim.api.nvim_win_close, state.win, true)
@@ -750,16 +943,19 @@ function M.chat()
       style = "minimal",
       border = "rounded",
     })
-    setup_keymaps(state.buf, state.win, state.messages)
+    local detected_vision = state.detected_vision
+    setup_keymaps(state.buf, state.win, state.messages, detected_vision)
     return
   end
 
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_name(buf, "AI Chat")
+  local detected_vision = state.detected_vision
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
     "=== AI Chat (llama.cpp) ===",
     "Server: " .. api_url(),
     "Model: " .. tostring(config.default_model) .. (state.detected_model and " (detected)" or ""),
+    "Vision: " .. (detected_vision and "enabled" or "disabled"),
     "Press '" .. config.keymaps.send_msg .. "' to send a message",
     "Press '<leader>av' to send a message + image (vision)",
     "Press '" .. config.keymaps.edit_code .. "' to edit code in place",
@@ -785,7 +981,7 @@ function M.chat()
   end
 
   state.messages = {}
-  setup_keymaps(buf, win, state.messages)
+  setup_keymaps(buf, win, state.messages, state.detected_vision)
 
   vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
   vim.api.nvim_set_option_value("readonly", true, { buf = buf })
@@ -1170,6 +1366,7 @@ end
 function M.new_chat()
   state.messages = {}
   state.detected_model = nil
+  state.detected_vision = false
   if state.win and vim.api.nvim_win_is_valid(state.win) then
     pcall(vim.api.nvim_win_close, state.win, true)
     state.win = nil

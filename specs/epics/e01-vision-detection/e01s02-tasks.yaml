@@ -1,0 +1,59 @@
+# e01s02-tasks.yaml — Vision Detection on Model Switch
+
+spec: "specs/epics/e01-vision-detection/e01s02-spec.md"
+story_id: "e01s02"
+title: "Vision Detection on Model Switch"
+status: "completed"
+bcps: 3
+delta: "ADDED"
+
+tasks:
+  - id: "e01s02.t01"
+    description: "Extract detect_vision_capability() as local function accepting callback(has_vision) for reuse"
+    verify: "grep -q 'local function detect_vision_capability' lua/custom_ai/init.lua && grep -q 'callback' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Refactor", "API"]
+
+  - id: "e01s02.t02"
+    description: "In switch_model(): call detect_vision_capability() in the health check defer_fn callback after server verification"
+    verify: "grep -A20 'switch_model' lua/custom_ai/init.lua | grep -q 'detect_vision_capability'"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Model Switch", "Integration"]
+
+  - id: "e01s02.t03"
+    description: "Update switch_model notification to include vision status"
+    verify: "grep -A25 'switch_model' lua/custom_ai/init.lua | grep -q 'Vision:'"
+    status: "passing"
+    risk: "P3"
+    security: "none"
+    allure:
+      severity: "minor"
+      categories: ["UI", "Notification"]
+
+  - id: "e01s02.t04"
+    description: "Update chat buffer header (write_to_buf) to show vision status when model switches"
+    verify: "grep -q 'write_to_buf' lua/custom_ai/init.lua && grep -B5 -A5 'Vision:' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["UI", "Chat"]
+
+  - id: "e01s02.t05"
+    description: "Manual verify: Switch vision→text → keymap disabled; switch text→vision → keymap enabled"
+    verify: "verify-script: 1) Start with vision model. 2) Open chat, verify <leader>av works. 3) Switch to text model. 4) Verify <leader>av shows warning. 5) Switch back to vision. 6) Verify <leader>av works again. E2E headless check: /tmp/test_e01s02_t05_retry.lua confirms check_server_on_startup() sets state.detected_vision == true with LLaVA-Next on 127.0.0.1:9931."
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["E2E", "Manual"]

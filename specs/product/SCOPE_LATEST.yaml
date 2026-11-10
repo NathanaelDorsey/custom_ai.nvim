@@ -1,0 +1,64 @@
+# SCOPE_LATEST.yaml — Vision Capability Detection for custom_ai.nvim
+
+core_value: "Automatically detect vision (multimodal) support for any llama.cpp model and gate vision features accordingly"
+
+summary: |
+  The plugin currently only supports vision features when the user manually selects the hardcoded "vision" model key.
+  This feature adds automatic vision capability detection at server startup and model switch, using an API probe
+  to verify multimodal support with a configurable filename-pattern fallback. When vision is unavailable, the
+  vision keymap (<leader>av) is disabled and attempts to use vision show a clear warning.
+
+  This aligns with the product vision of "model-agnostic: works with any OpenAI-compatible llama.cpp server"
+  and "configurable without editing plugin source" by making vision detection work for any model the user runs.
+
+in_scope:
+  - "Vision detection via API probe at startup (check_server_on_startup)"
+  - "Vision detection via API probe on model switch (switch_model)"
+  - "Configurable filename-pattern fallback (config.vision_keywords) for known vision model names"
+  - "Runtime state flag (state.detected_vision) reflecting current model's capability"
+  - "Keymap gating: disable <leader>av when vision unsupported"
+  - "Warning notification when user attempts vision with non-vision model"
+  - "Config schema extension: vision_keywords (array of strings), vision_probe (boolean)"
+  - "Backward compatibility: default vision_keywords covers LLaVA variants; vision_probe defaults to true"
+
+out_of_scope:
+  - "Streaming response support (separate feature)"
+  - "Multi-model concurrent serving (single-port architecture constraint)"
+  - "Automatic model download/install (user manages server scripts)"
+  - "Remote server management / SSH / Docker (local-only design)"
+  - "Vision model benchmarking or comparison (out of plugin scope)"
+  - "Image preprocessing/optimization (user provides image path as-is)"
+
+constraints:
+  - "Neovim 0.10+ APIs only (vim.system, vim.json, vim.ui.select)"
+  - "Async/non-blocking: all detection via vim.system callbacks"
+  - "No external Lua dependencies"
+  - "Must not increase model switch latency beyond ~500ms (probe timeout)"
+  - "Default config must work for existing users without changes"
+
+success_criteria:
+  - "Fresh Neovim start with vision model running → vision keymap enabled, no warning"
+  - "Fresh Neovim start with text-only model → vision keymap disabled, text chat works"
+  - "Model switch from vision → text-only → vision keymap disabled within 500ms"
+  - "Model switch from text-only → vision → vision keymap enabled within 500ms"
+  - "User adds custom vision model name to vision_keywords → detected without code change"
+  - "API probe timeout/failure → falls back to filename patterns, logs warning"
+  - "All existing tests (manual scenarios from TEST_PLAN_LATEST.md) still pass"
+
+references:
+  - "specs/planning-context.yaml — elaborated decisions and trade-offs"
+  - "specs/product/VISION_LATEST.yaml — product vision and principles"
+  - "specs/tech-architecture/tech-stack.md — current architecture and patterns"
+  - "specs/tech-architecture/TEST_PLAN_LATEST.md — regression test scenarios"
+
+trade_off_analysis:
+  - item: "Streaming response support"
+    reason: "Deferred — requires SSE parsing, changes queue architecture, separate epic"
+  - item: "Multi-model concurrent serving"
+    reason: "Architectural constraint — single GPU, single port design"
+  - item: "Automatic model download/install"
+    reason: "Not plugin's responsibility — user manages llama.cpp server scripts"
+  - item: "Remote server management"
+    reason: "Out of scope — plugin designed for local-only workflow"
+  - item: "Image preprocessing"
+    reason: "Unnecessary complexity — user provides path, plugin encodes to base64"

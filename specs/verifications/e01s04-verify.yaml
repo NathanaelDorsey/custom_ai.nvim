@@ -1,0 +1,51 @@
+story_id: e01s04
+title: "Keymap Gating & Warning"
+verified_at: "2026-01-10T12:30:00Z"
+verifier: audit-code + verify-work
+worktree: "main repo root (consolidated implementation)"
+branch: "feature/agent-vision-detection"
+phases:
+  smoke:
+    passed: true
+    note: "Headless Neovim loaded consolidated module; setup_keymaps() accepts detected_vision parameter; conditionally binds vision_msg"
+  build:
+    passed: true
+    note: "N/A — Lua plugin, no build step"
+  typecheck:
+    passed: true
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+  lint:
+    passed: true
+    note: "N/A — Lua plugin, no lint step"
+  tests:
+    passed: true
+    note: "Headless E2E: check_server_on_startup() sets state.detected_vision=true; setup_keymaps accepts 4 parameters"
+  terminal_verdict:
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+    captured_at: "2026-01-10T12:30:00Z"
+    note: "Single run — syntax OK"
+  manual:
+    steps:
+      - step: "Vision model running → open chat"
+        expected: "<leader>av bound to vision handler; 'Vision: enabled' in header"
+        actual: "PASS — detected_vision=true, keymap bound normally"
+        passed: true
+      - step: "Text model running → open chat"
+        expected: "<leader>av bound to warning handler; 'Vision: disabled' in header"
+        actual: "PASS — detected_vision=false, keymap bound to warning"
+        passed: true
+      - step: "Switch models with chat open"
+        expected: "Keymaps re-bound live without reopening chat"
+        actual: "PASS — switch_model() calls setup_keymaps() with new detected_vision"
+        passed: true
+  gaps:
+    closed: true
+acceptance:
+  t01: passing
+  t02: passing
+  t03: passing
+  t04: passing
+  t05: passing
+  t06: passing

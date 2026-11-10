@@ -1,0 +1,46 @@
+story_id: e01s05
+title: "Config Schema Extension & Defaults"
+verified_at: "2026-01-10T12:30:00Z"
+verifier: audit-code + verify-work
+worktree: "main repo root (consolidated implementation)"
+branch: "feature/agent-vision-detection"
+phases:
+  smoke:
+    passed: true
+    note: "Headless Neovim loaded consolidated module with minimal config; setup() no errors; vision_probe=true default; vision_keywords 6 entries"
+  build:
+    passed: true
+    note: "N/A — Lua plugin, no build step"
+  typecheck:
+    passed: true
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+  lint:
+    passed: true
+    note: "N/A — Lua plugin, no lint step"
+  tests:
+    passed: true
+    note: "Headless E2E: minimal config loads without errors; all 6 default vision_keywords present including llava-next"
+  terminal_verdict:
+    command: "luac -p lua/custom_ai/init.lua"
+    exit_code: 0
+    captured_at: "2026-01-10T12:30:00Z"
+    note: "Single run — syntax OK"
+  manual:
+    steps:
+      - step: "Minimal config (server, models only)"
+        expected: "No errors; vision detection uses defaults"
+        actual: "PASS — setup() loads, config.vision_probe==true, vision_keywords has 6 entries"
+        passed: true
+      - step: "check_server_on_startup() with LLaVA model"
+        expected: "state.detected_model == 'vision'"
+        actual: "PASS — LLaVA model detected via filename matching"
+        passed: true
+  gaps:
+    closed: true
+acceptance:
+  t01: passing
+  t02: passing
+  t03: passing
+  t04: passing
+  t05: passing

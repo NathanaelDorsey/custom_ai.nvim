@@ -1,0 +1,59 @@
+# e01s05-tasks.yaml — Config Schema Extension & Defaults
+
+spec: "specs/epics/e01-vision-detection/e01s05-spec.md"
+story_id: "e01s05"
+title: "Config Schema Extension & Defaults"
+status: "completed"
+bcps: 2
+delta: "ADDED"
+
+tasks:
+  - id: "e01s05.t01"
+    description: "Add vision_probe = true to defaults table in init.lua"
+    verify: "grep -q 'vision_probe = true' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["Config"]
+
+  - id: "e01s05.t02"
+    description: "Add vision_keywords = {'llava', 'bakllava', 'llava-next', 'llava-1.5', 'llava-1.6', 'vision'} to defaults table"
+    verify: "grep -q 'vision_keywords' lua/custom_ai/init.lua && grep -q 'llava-next' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["Config"]
+
+  - id: "e01s05.t03"
+    description: "Update README.md Configuration section: document vision_probe (boolean) and vision_keywords (array of strings)"
+    verify: "grep -q 'vision_probe' README.md && grep -q 'vision_keywords' README.md"
+    status: "passing"
+    risk: "P3"
+    security: "none"
+    allure:
+      severity: "minor"
+      categories: ["Docs"]
+
+  - id: "e01s05.t04"
+    description: "Update example-init.lua with commented vision_probe and vision_keywords examples"
+    verify: "grep -q 'vision_probe' example-init.lua && grep -q 'vision_keywords' example-init.lua"
+    status: "passing"
+    risk: "P3"
+    security: "none"
+    allure:
+      severity: "minor"
+      categories: ["Docs", "Example"]
+
+  - id: "e01s05.t05"
+    description: "Manual verify: Minimal config (server, models only) → no errors, vision detection works with defaults"
+    verify: "verify-script: 1) Create minimal init.lua with only server and models config. 2) Start Neovim. 3) No errors. 4) Vision detection works (probe enabled by default)."
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["E2E", "Compatibility"]

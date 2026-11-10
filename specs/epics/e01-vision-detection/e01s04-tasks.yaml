@@ -1,0 +1,69 @@
+# e01s04-tasks.yaml — Keymap Gating & Warning
+
+spec: "specs/epics/e01-vision-detection/e01s04-spec.md"
+story_id: "e01s04"
+title: "Keymap Gating & Warning"
+status: "completed"
+bcps: 5
+delta: "ADDED"
+
+tasks:
+  - id: "e01s04.t01"
+    description: "Modify setup_keymaps(): accept detected_vision parameter; conditionally bind km.vision_msg to vision handler (if true) or warning handler (if false)"
+    verify: "grep -A40 'setup_keymaps' lua/custom_ai/init.lua | grep -q 'detected_vision'"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Keymap", "UI"]
+
+  - id: "e01s04.t02"
+    description: "Create vision warning handler: vim.notify('Vision not supported by current model. Switch to a vision-capable model (e.g., LLaVA) to use image upload.', vim.log.levels.WARN)"
+    verify: "grep -q 'Vision not supported' lua/custom_ai/init.lua"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["UI", "Warning"]
+
+  - id: "e01s04.t03"
+    description: "Update chat() and new_chat() to pass state.detected_vision to setup_keymaps()"
+    verify: "grep -A10 'chat()' lua/custom_ai/init.lua | grep -q 'detected_vision' && grep -A10 'new_chat' lua/custom_ai/init.lua | grep -q 'detected_vision'"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Integration", "Chat"]
+
+  - id: "e01s04.t04"
+    description: "Update chat buffer header in chat()/new_chat() to include 'Vision: enabled/disabled' line"
+    verify: "grep -q 'Vision:' lua/custom_ai/init.lua && grep -A20 'chat()' lua/custom_ai/init.lua | grep -q 'Vision:'"
+    status: "passing"
+    risk: "P2"
+    security: "none"
+    allure:
+      severity: "normal"
+      categories: ["UI", "Header"]
+
+  - id: "e01s04.t05"
+    description: "In switch_model(): after vision detection, if chat window open, rebind keymaps for that buffer with new detected_vision"
+    verify: "grep -A30 'switch_model' lua/custom_ai/init.lua | grep -q 'setup_keymaps'"
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["Model Switch", "Integration"]
+
+  - id: "e01s04.t06"
+    description: "Manual verify: Text model → <leader>av shows warning; Vision model → <leader>av works; Switch updates keymap live"
+    verify: "verify-script: 1) Start text model. 2) Open chat. 3) Press <leader>av → warning shown. 4) Start vision model. 5) Open chat. 6) Press <leader>av → prompts for image. 7) With chat open, switch models → keymap updates without reopen."
+    status: "passing"
+    risk: "P1"
+    security: "none"
+    allure:
+      severity: "high"
+      categories: ["E2E", "Manual"]

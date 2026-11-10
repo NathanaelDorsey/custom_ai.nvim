@@ -1,0 +1,22 @@
+# state.yaml — Session State for custom_ai.nvim
+
+workflow_mode: "solo-git"
+current_epic: null
+current_task: null
+active_branch: "main"
+last_commit: null
+open_pr: null
+context:
+  - "Project bootstrapped with seed-conventions"
+  - "Core plugin already implemented in lua/custom_ai/init.lua"
+  - "No epics or tasks defined yet"
+  - "Awaiting feature requests or bug reports"
+decisions: []
+# Format:
+# - id: "dec-001"
+#   date: "2025-01-10"
+#   decision: "Use single-file Lua plugin architecture"
+#   rationale: "Zero dependencies, simple distribution, Neovim convention"
+#   alternatives: ["Multi-file with require()", "Fennel", "TypeScript via nvim-web-devicons"]
+
+updated: "2025-01-10T10:00:00Z"
