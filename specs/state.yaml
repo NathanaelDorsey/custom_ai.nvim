@@ -4,14 +4,15 @@ workflow_mode: "solo-git"
 current_epic: null
 current_task: null
 active_branch: "main"
-last_commit: "c81f8ab"
+last_commit: "6654b9c"
 open_pr: null
 context:
   - "Epic e01-vision-detection completed: vision capability detection with keymap gating"
   - "5 stories, 18 BCPs, 32 tasks all passing"
-  - "Committed: feat(custom_ai): add automatic vision capability detection with keymap gating"
-  - "E2E tested with LLaVA-Next at 127.0.0.1:9931"
-  - "Review: dual-blind AND-gate PASS (100% both reviewers)"
+  - "Released: feat(custom_ai): add automatic vision capability detection with keymap gating (c81f8ab)"
+  - "Wiki maintained: 10 OKF concept pages ingested from CLAUDE.md/CONVENTIONS.md"
+  - "Dual-blind review AND-gate PASS (100% both reviewers)"
+  - "Visual dashboard: http://localhost:63195/cockpit.html?projectDir=/var/home/viper/custom_ai.nvim"
 decisions:
   - id: "dec-001"
     date: "2026-01-10"
@@ -23,5 +24,10 @@ decisions:
     decision: "All detection async via vim.system callbacks — no blocking calls"
     rationale: "CONVENTIONS.md: never block Neovim UI"
     alternatives: ["vim.system(...):wait() synchronous", "vim.fn.system() blocking"]
+  - id: "dec-003"
+    date: "2026-01-10"
+    decision: "Release directly to main (solo-git workflow)"
+    rationale: "Solo developer, no PR needed for internal tool"
+    alternatives: ["team-pr workflow", "feature branch + PR"]
 
-updated: "2026-01-10T13:00:00Z"
+updated: "2026-01-10T13:15:00Z"
