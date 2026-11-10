@@ -4,19 +4,24 @@ workflow_mode: "solo-git"
 current_epic: null
 current_task: null
 active_branch: "main"
-last_commit: null
+last_commit: "c81f8ab"
 open_pr: null
 context:
-  - "Project bootstrapped with seed-conventions"
-  - "Core plugin already implemented in lua/custom_ai/init.lua"
-  - "No epics or tasks defined yet"
-  - "Awaiting feature requests or bug reports"
-decisions: []
-# Format:
-# - id: "dec-001"
-#   date: "2025-01-10"
-#   decision: "Use single-file Lua plugin architecture"
-#   rationale: "Zero dependencies, simple distribution, Neovim convention"
-#   alternatives: ["Multi-file with require()", "Fennel", "TypeScript via nvim-web-devicons"]
+  - "Epic e01-vision-detection completed: vision capability detection with keymap gating"
+  - "5 stories, 18 BCPs, 32 tasks all passing"
+  - "Committed: feat(custom_ai): add automatic vision capability detection with keymap gating"
+  - "E2E tested with LLaVA-Next at 127.0.0.1:9931"
+  - "Review: dual-blind AND-gate PASS (100% both reviewers)"
+decisions:
+  - id: "dec-001"
+    date: "2026-01-10"
+    decision: "Use API probe first, filename fallback for vision detection"
+    rationale: "API probe gives verified running model name; filename fallback covers custom/unnamed models"
+    alternatives: ["filename only", "API probe only", "both with probe first"]
+  - id: "dec-002"
+    date: "2026-01-10"
+    decision: "All detection async via vim.system callbacks — no blocking calls"
+    rationale: "CONVENTIONS.md: never block Neovim UI"
+    alternatives: ["vim.system(...):wait() synchronous", "vim.fn.system() blocking"]
 
-updated: "2025-01-10T10:00:00Z"
+updated: "2026-01-10T12:45:00Z"

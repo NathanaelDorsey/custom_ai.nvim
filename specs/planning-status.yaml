@@ -9,6 +9,6 @@ discover_phase:
   slice_tasks: "done"
   plan_work: "done"
 
-current_step: "audit-code"
+current_step: "release-branch"
 blocked: false
-notes: "Epic e01-vision-detection fully implemented, verified, and audited: 5 stories, 18 BCPs, 32 tasks all passing. Audit-code report: PASS with 4 MEDIUM findings (all resolved). Ready for request-review (independent code review)."
+notes: "Epic e01-vision-detection complete: 5 stories, 18 BCPs, 32 tasks all passing. Committed: feat(custom_ai): add automatic vision capability detection with keymap gating (c81f8ab). E2E tested with LLaVA-Next at 127.0.0.1:9931. Dual-blind review AND-gate PASS (100% both reviewers). Ready for release-branch."
