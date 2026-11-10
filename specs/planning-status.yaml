@@ -1,14 +1,22 @@
 # planning-status.yaml — Planning Phase Status for custom_ai.nvim
 
-discover_phase:
-  survey_context: "done"
-  scope_work: "done"
-  research_first: "done"
-  elaborate_spec: "done"
-  plan_release: "done"
-  slice_tasks: "done"
-  plan_work: "done"
-
-current_step: "release-branch"
-blocked: false
-notes: "Epic e01-vision-detection complete: 5 stories, 18 BCPs, 32 tasks all passing. Committed: feat(custom_ai): add automatic vision capability detection with keymap gating (c81f8ab). E2E tested with LLaVA-Next at 127.0.0.1:9931. Review: dual-blind AND-gate PASS (100% both reviewers). Wiki maintained: 10 concept pages ingested from CLAUDE.md/CONVENTIONS.md, LINT clean (no stale/orphan/broken links), QUERY operational."
+  discover-phase:
+    status: done
+  scope-work:
+    status: done
+  research-first:
+    status: done
+  elaborate-spec:
+    status: done
+  plan-release:
+    status: done
+  slice-tasks:
+    status: done
+  plan-work:
+    status: done
+  current-step:
+    status: release-branch
+  blocked:
+    status: false
+  notes:
+    status: done
