@@ -1,33 +1,55 @@
-feature_name: "vision-capability-detection"
+# specs/planning-context.yaml
+# Written by elaborate-spec — consumed by scope-work and slice-tasks
+
+feature_name: "inline-code-completion"
 problem_statement: |
-  The plugin currently has hardcoded "vision" key matching for LLaVA models but no generic capability detection.
-  Users cannot reliably use vision features (image upload via <leader>av) unless they manually select the "vision" model key.
-  Need automatic detection of vision capability at model switch/startup, with configurable behavior when vision is unavailable.
+  Add togglable inline code completion (Copilot-style) to custom_ai.nvim using the local llama.cpp model.
+  Triggered manually via keybinding (e.g., <C-space>), showing completions in blink.cmp menu alongside LSP.
+  Automatically gathers project context via LSP/treesitter (imports, types, related functions, test files).
+  Supports both single-line and multi-line completions, configurable per-model/project.
+  Uses the currently active model (coder/specialist/etc.), blocking request (wait for full response).
+  Global on/off toggle.
 
 constraints:
-  - Must work with any llama.cpp model (not just predefined 5 keys)
-  - Detection at startup and on model switch
-  - Configurable fallback behavior
-  - No breaking changes to existing config schema
-  - Async/non-blocking (consistent with plugin architecture)
+  - "Must integrate with blink.cmp as a completion source"
+  - "All network I/O async via vim.system() — no blocking Neovim UI"
+  - "Project context gathering via LSP (workspace symbols, references) and treesitter"
+  - "Reuse existing model management, server lifecycle, and config system"
+  - "Respect existing keymap prefix (<leader>a) and global_keymaps setting"
+  - "Virtual text/ghost text NOT required — blink.cmp menu is primary UX"
 
 out_of_scope:
-  - Streaming response support
-  - Multi-model concurrent serving
-  - Automatic model download/install
-  - Remote server management
+  - "Chat window integration (separate feature)"
+  - "Multi-file edits / refactoring"
+  - "Test generation"
+  - "Documentation generation"
+  - "Streaming token-by-token display (blocking only)"
+  - "Dedicated small/fast model for completion (uses active model)"
+  - "Automatic ghost text as-you-type (manual trigger only)"
 
 key_decisions:
-  - decision: "Use filename-based detection as primary, API probe as optional fallback"
-    rationale: "Filename detection is instant, reliable for known patterns, and doesn't require network round-trip. API probe adds latency and complexity."
-  - decision: "Store capability in state.detected_vision (runtime) with config.vision_keywords for patterns"
-    rationale: "Separates user config from runtime detection. Allows user to extend patterns without code changes."
-  - decision: "Disable vision keymap and show warning when vision unavailable"
-    rationale: "Fail fast with clear feedback. User can still send text; image upload gracefully degrades to text-only with warning."
+  - decision: "Manual trigger via keybinding (e.g., <C-space>)"
+    rationale: "Simpler implementation, user controls when to request, avoids unwanted suggestions"
+  - decision: "blink.cmp as completion source"
+    rationale: "Modern, performant, integrates with existing LSP completions, user already uses blink.cmp"
+  - decision: "Automatic project context via LSP/treesitter"
+    rationale: "Provides relevant context without user manual selection; leverages Neovim's LSP client"
+  - decision: "Both single-line and multi-line, configurable"
+    rationale: "Flexibility for different use cases; controlled via model_config or per-filetype"
+  - decision: "Blocking request (wait for full completion)"
+    rationale: "Simpler implementation; local model latency acceptable for 'usable' target"
+  - decision: "Current active model powers completions"
+    rationale: "No need to manage separate completion model; user switches models as needed"
+  - decision: "Global on/off toggle"
+    rationale: "Simple UX; per-buffer/project can be added later if needed"
+  - decision: "Completion appears in blink.cmp menu alongside LSP"
+    rationale: "Unified completion UX; user navigates with <C-n>/<C-p>, accepts with <CR>/<Tab>"
 
-questions_for_review:
-  - "Detection approach: filename patterns (config-driven) vs API probe vs both? Recommendation: filename primary, config-extensible."
-  - "When non-vision model: disable keymap + warning, or auto-fallback to text-only? Recommendation: disable keymap, warn on attempt."
-  - "Capability state location: state.detected_vision (runtime) + config.vision_keywords (patterns)?"
-  - "Support for custom models beyond default 5? Recommendation: yes, via config.vision_keywords patterns."
-  - "API probe failure handling: assume no vision, warn user? Recommendation: assume no vision, log warning."
+success_criteria:
+  - "Press <C-space> in insert mode → blink.cmp menu shows AI completions alongside LSP"
+  - "Completions include relevant project context (imports, types, related functions)"
+  - "Single-line and multi-line completions both work, configurable"
+  - "Global toggle enables/disables completion source"
+  - "Works with all configured models (coder, specialist, allrounder, etc.)"
+  - "No UI blocking during request"
+  - "Graceful degradation when server unavailable"

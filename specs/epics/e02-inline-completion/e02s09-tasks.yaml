@@ -1,0 +1,97 @@
+# specs/epics/e02-inline-completion/e02s09-tasks.yaml
+# Story: Graceful degradation (server unavailable, errors, empty response)
+# BCPs: 3 | Delta: ADDED | Risk: P1
+
+story_id: "e02s09"
+title: "Graceful degradation (server unavailable, errors, empty response)"
+status: "failing"
+bcps: 3
+delta: "ADDED"
+risk: "P1"
+
+tasks:
+  - id: "e02s09.1"
+    description: "Add pre-flight server check: quick HEAD/GET to /v1/models with short timeout (1s) before request"
+    verify: "grep -q 'HEAD\\|v1/models' lua/custom_ai/completion.lua && grep -q 'timeout' lua/custom_ai/completion.lua && grep -q '1000\\|1s' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Error Handling"
+        - "Health Check"
+
+  - id: "e02s09.2"
+    description: "On pre-flight failure: return error completion item { label='AI: Server unavailable', kind=Text, detail='Start llama.cpp server' }"
+    verify: "grep -q 'Server unavailable' lua/custom_ai/completion.lua && grep -q 'Text' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Error Handling"
+        - "blink.cmp"
+
+  - id: "e02s09.3"
+    description: "Add timeout to vim.system call (config.completion.timeout or 5000ms), handle timeout in callback"
+    verify: "grep -q 'timeout' lua/custom_ai/completion.lua && grep -q 'Request timeout' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Timeout"
+        - "Async"
+
+  - id: "e02s09.4"
+    description: "Handle JSON parse errors: pcall(vim.json.decode), on failure return error item 'AI: Parse error'"
+    verify: "grep -q 'parse error\\|json.decode' lua/custom_ai/completion.lua && grep -q 'Parse error' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Error Handling"
+        - "Parsing"
+
+  - id: "e02s09.5"
+    description: "Handle server error response: check data.error field, return error item with server message"
+    verify: "grep -q 'data.error' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Error Handling"
+        - "API"
+
+  - id: "e02s09.6"
+    description: "Handle empty response: choices[0].text empty or missing → error item 'AI: Empty response'"
+    verify: "grep -q 'Empty response' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Error Handling"
+
+  - id: "e02s09.7"
+    description: "Auto-retry: no persistent error flag, each trigger attempts fresh request"
+    verify: "grep -q 'retry' lua/custom_ai/completion.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Retry Logic"
+
+  - id: "e02s09.8"
+    description: "Manual test: stop server, trigger completion, verify error item; restart server, verify recovery"
+    verify: "echo 'MANUAL: pkill llama, trigger completion, verify error; restart server, verify works'"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "E2E"
+        - "Manual Test"

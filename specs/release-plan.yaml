@@ -12,6 +12,14 @@ epics:
     status: "completed"
     tasks_ref: "epics/e01-vision-detection/"
 
+  - id: "e02"
+    slug: "inline-completion"
+    title: "Inline Code Completion (blink.cmp integration)"
+    wsjf: 84
+    bcp: 39
+    status: "planned"
+    tasks_ref: "epics/e02-inline-completion/"
+
 releases:
   - version: "0.1.0"
     target_date: "2025-01-15"
@@ -24,6 +32,12 @@ releases:
       - "e01"
     baseline: "0.1.0"
     notes: "Add automatic vision capability detection with keymap gating"
+  - version: "0.3.0"
+    target_date: "2025-03-01"
+    epics:
+      - "e02"
+    baseline: "0.2.0"
+    notes: "Add togglable inline code completion via blink.cmp with project context"
 
 # Semantic versioning:
 # MAJOR: Breaking config/API changes

@@ -1,0 +1,109 @@
+# specs/epics/e02-inline-completion/e02s04-tasks.yaml
+# Story: Async completion request to llama.cpp with context injection
+# BCPs: 5 | Delta: ADDED | Risk: P0
+
+story_id: "e02s04"
+title: "Async completion request to llama.cpp with context injection"
+status: "failing"
+bcps: 5
+delta: "ADDED"
+risk: "P0"
+
+tasks:
+  - id: "e02s04.1"
+    description: "Add request_completion(context, callback) to completion.lua using vim.system() async POST to /v1/completions"
+    verify: "grep -q 'request_completion' lua/custom_ai/completion.lua && grep -q 'vim.system' lua/custom_ai/completion.lua && grep -q '/v1/completions' lua/custom_ai/completion.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Async"
+        - "API"
+
+  - id: "e02s04.2"
+    description: "Build prompt template: system prompt + context sections + current file prefix + cursor context"
+    verify: "grep -q 'prompt' lua/custom_ai/completion.lua && grep -q 'context' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Prompt Engineering"
+
+  - id: "e02s04.3"
+    description: "Add completion-specific queue or reuse state.queue to prevent overlapping requests"
+    verify: "grep -q 'queue' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Queue"
+        - "Async"
+
+  - id: "e02s04.4"
+    description: "Handle cancellation: if new trigger before previous completes, cancel previous (vim.system handle:kill())"
+    verify: "grep -q 'kill\\|cancel' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Cancellation"
+        - "Async"
+
+  - id: "e02s04.5"
+    description: "Add timeout config (default 5000ms) to vim.system call, handle timeout in callback"
+    verify: "grep -q 'timeout' lua/custom_ai/completion.lua && grep -q '5000' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Timeout"
+        - "Async"
+
+  - id: "e02s04.6"
+    description: "Error handling: network error, server error, parse error → return error completion item"
+    verify: "grep -q 'error' lua/custom_ai/completion.lua && grep -q 'result.code' lua/custom_ai/completion.lua && grep -q 'result.stderr' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Error Handling"
+        - "API"
+
+  - id: "e02s04.7"
+    description: "Integrate with context.lua: call gather_context, inject into prompt, send request"
+    verify: "grep -q 'require.*context' lua/custom_ai/completion.lua && grep -q 'gather_context' lua/custom_ai/completion.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Integration"
+        - "Context"
+
+  - id: "e02s04.8"
+    description: "Use model-specific params from model_config[model_key].completion (temperature, max_tokens, stop)"
+    verify: "grep -q 'model_config' lua/custom_ai/completion.lua && grep -q 'temperature' lua/custom_ai/completion.lua && grep -q 'stop' lua/custom_ai/completion.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+        - "Model"
+
+  - id: "e02s04.9"
+    description: "Manual test: verify async (UI doesn't freeze), queue works, cancellation works, errors handled"
+    verify: "echo 'MANUAL: Trigger multiple rapid completions, verify no UI freeze, check queue behavior; stop server, verify error item; restart, verify recovery'"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "E2E"
+        - "Manual Test"

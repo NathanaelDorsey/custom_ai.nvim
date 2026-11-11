@@ -1,0 +1,75 @@
+# specs/epics/e02-inline-completion/e02s08-tasks.yaml
+# Story: Global on/off toggle (command + keymap)
+# BCPs: 2 | Delta: ADDED | Risk: P2
+
+story_id: "e02s08"
+title: "Global on/off toggle (command + keymap)"
+status: "failing"
+bcps: 2
+delta: "ADDED"
+risk: "P2"
+
+tasks:
+  - id: "e02s08.1"
+    description: "Add state.completion_enabled = true to module state in init.lua"
+    verify: "grep -q 'completion_enabled' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "State Management"
+
+  - id: "e02s08.2"
+    description: "Implement M.toggle_completion() — flips state, re-registers/unregisters blink.cmp source dynamically"
+    verify: "grep -q 'toggle_completion' lua/custom_ai/init.lua && grep -q 'blink.cmp' lua/custom_ai/init.lua && grep -q 'completion_enabled' lua/custom_ai/init.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Integration"
+        - "blink.cmp"
+
+  - id: "e02s08.3"
+    description: "Add :AICompletionToggle user command in setup()"
+    verify: "grep -q 'AICompletionToggle' lua/custom_ai/init.lua && grep -q 'user_command' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Command"
+
+  - id: "e02s08.4"
+    description: "Add keymap <leader>ac in setup_global_keymaps() (configurable via config.keymaps.toggle_completion)"
+    verify: "grep -q 'toggle_completion' lua/custom_ai/init.lua && grep -q '<leader>ac' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Keymaps"
+        - "UX"
+
+  - id: "e02s08.5"
+    description: "Show notification on toggle: 'AI Completion: enabled/disabled'"
+    verify: "grep -q 'notify' lua/custom_ai/init.lua && grep -q 'Completion' lua/custom_ai/init.lua"
+    risk: "P3"
+    status: "failing"
+    allure:
+      severity: "minor"
+      categories:
+        - "UX"
+        - "Notification"
+
+  - id: "e02s08.6"
+    description: "Manual test: toggle off, verify blink.cmp menu shows no AI items; toggle on, verify restored"
+    verify: "echo 'MANUAL: Press <leader>ac, trigger completion, verify disabled; press again, verify enabled'"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "E2E"
+        - "Manual Test"

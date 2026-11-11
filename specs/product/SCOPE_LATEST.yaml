@@ -1,64 +1,91 @@
-# SCOPE_LATEST.yaml — Vision Capability Detection for custom_ai.nvim
+# specs/product/SCOPE_LATEST.yaml
+# Bounded PRD for inline-code-completion feature
+# Source of truth for slice-tasks and plan-work
 
-core_value: "Automatically detect vision (multimodal) support for any llama.cpp model and gate vision features accordingly"
+core_value: "Local AI code completions (Copilot-style) powered by your llama.cpp models, integrated into blink.cmp with automatic project context"
 
 summary: |
-  The plugin currently only supports vision features when the user manually selects the hardcoded "vision" model key.
-  This feature adds automatic vision capability detection at server startup and model switch, using an API probe
-  to verify multimodal support with a configurable filename-pattern fallback. When vision is unavailable, the
-  vision keymap (<leader>av) is disabled and attempts to use vision show a clear warning.
+  This initiative adds togglable inline code completion to custom_ai.nvim, the Neovim plugin for local llama.cpp integration.
+  Users invoke completions manually via keybinding (e.g., <C-space> in insert mode), which queries the running llama.cpp server
+  and presents completions in the blink.cmp completion menu alongside LSP suggestions. The plugin automatically gathers
+  relevant project context (imports, type definitions, related functions, test files) via LSP and treesitter to improve
+  completion quality. Completions can be single-line or multi-line, configurable per model or project. A global toggle
+  enables/disables the feature. The existing model management, server lifecycle, and config system are reused.
 
-  This aligns with the product vision of "model-agnostic: works with any OpenAI-compatible llama.cpp server"
-  and "configurable without editing plugin source" by making vision detection work for any model the user runs.
+  This is a single-epic initiative (e02-inline-completion) focused on the completion experience only — chat, multi-file
+  edits, test generation, and documentation are explicitly out of scope.
 
 in_scope:
-  - "Vision detection via API probe at startup (check_server_on_startup)"
-  - "Vision detection via API probe on model switch (switch_model)"
-  - "Configurable filename-pattern fallback (config.vision_keywords) for known vision model names"
-  - "Runtime state flag (state.detected_vision) reflecting current model's capability"
-  - "Keymap gating: disable <leader>av when vision unsupported"
-  - "Warning notification when user attempts vision with non-vision model"
-  - "Config schema extension: vision_keywords (array of strings), vision_probe (boolean)"
-  - "Backward compatibility: default vision_keywords covers LLaVA variants; vision_probe defaults to true"
+  - "Epic e02: Inline Code Completion"
+    - "Story: Manual trigger keybinding in insert mode (<C-space> by default, configurable)"
+    - "Story: blink.cmp completion source registration and integration"
+    - "Story: Automatic project context gathering via LSP (workspace symbols, references, definitions) and treesitter"
+    - "Story: Completion request to llama.cpp with context injection (async, non-blocking)"
+    - "Story: Single-line completion support (next logical line/token)"
+    - "Story: Multi-line block completion support (functions, control structures)"
+    - "Story: Completion granularity configuration (per-model or per-filetype)"
+    - "Story: Global on/off toggle (command + keymap)"
+    - "Story: Graceful degradation when llama.cpp server unavailable"
+    - "Story: Integration with existing model switching (uses active model)"
 
 out_of_scope:
-  - "Streaming response support (separate feature)"
-  - "Multi-model concurrent serving (single-port architecture constraint)"
-  - "Automatic model download/install (user manages server scripts)"
-  - "Remote server management / SSH / Docker (local-only design)"
-  - "Vision model benchmarking or comparison (out of plugin scope)"
-  - "Image preprocessing/optimization (user provides image path as-is)"
+  - "Chat window integration (separate feature — existing chat works independently)"
+    - "Rationale: Different UX paradigm; chat is conversational, completion is inline"
+  - "Multi-file edits / refactoring"
+    - "Rationale: Requires different architecture (workspace edits, diffs); defer to future epic"
+  - "Test generation"
+    - "Rationale: Specialized use case; could be a separate completion mode later"
+  - "Documentation generation"
+    - "Rationale: Specialized use case; out of scope for inline completion MVP"
+  - "Streaming token-by-token display"
+    - "Rationale: Blocking request chosen for simplicity; streaming adds complexity (partial rendering, cancellation)"
+    - "Deferred: Can be added as enhancement after blocking version works"
+  - "Dedicated small/fast model for completion"
+    - "Rationale: Uses active model; user manages model switching via existing <leader>am"
+    - "Deferred: If latency proves problematic, can add dedicated completion_model config"
+  - "Automatic ghost text as-you-type (Copilot-style passive suggestions)"
+    - "Rationale: Manual trigger chosen for control and simplicity; passive suggestions require debouncing, filtering, UI polish"
+    - "Deferred: Can be added as separate trigger mode after manual trigger works"
+  - "Per-buffer or per-project toggle granularity"
+    - "Rationale: Global toggle is MVP; finer granularity can be added if users request it"
+  - "Virtual text / ghost text rendering (standalone)"
+    - "Rationale: blink.cmp menu is primary UX; virtual text not needed for MVP"
+  - "Completion caching / prefetching"
+    - "Rationale: Optimization; not needed for initial delivery"
+  - "Cross-file completion awareness (beyond context gathering)"
+    - "Rationale: Context gathering covers imports/types; semantic cross-file completion is LSP territory"
 
 constraints:
-  - "Neovim 0.10+ APIs only (vim.system, vim.json, vim.ui.select)"
-  - "Async/non-blocking: all detection via vim.system callbacks"
-  - "No external Lua dependencies"
-  - "Must not increase model switch latency beyond ~500ms (probe timeout)"
-  - "Default config must work for existing users without changes"
+  - "Tech: Must integrate with blink.cmp as a completion source (not nvim-cmp, not standalone)"
+  - "Tech: All network I/O async via vim.system() — zero UI blocking"
+  - "Tech: Project context via Neovim LSP client (vim.lsp) and treesitter (vim.treesitter)"
+  - "Tech: Reuse existing custom_ai config system (models, model_config, keymaps, server)"
+  - "Tech: Reuse existing model management (switch_model, refresh_model, server lifecycle)"
+  - "Tech: Respect global_keymaps setting for keymap scope"
+  - "Tech: Lua 5.1/5.4, Neovim 0.10+"
+  - "Runtime: llama.cpp server on localhost:9931 (configurable)"
+  - "Runtime: Models defined in config (coder, specialist, allrounder, efficient, vision)"
+  - "Performance: No hard latency target — 'usable' for local 7B-8B models"
+  - "Compat: No breaking changes to existing chat, file ops, test runner features"
 
 success_criteria:
-  - "Fresh Neovim start with vision model running → vision keymap enabled, no warning"
-  - "Fresh Neovim start with text-only model → vision keymap disabled, text chat works"
-  - "Model switch from vision → text-only → vision keymap disabled within 500ms"
-  - "Model switch from text-only → vision → vision keymap enabled within 500ms"
-  - "User adds custom vision model name to vision_keywords → detected without code change"
-  - "API probe timeout/failure → falls back to filename patterns, logs warning"
-  - "All existing tests (manual scenarios from TEST_PLAN_LATEST.md) still pass"
+  - "Press <C-space> in insert mode → blink.cmp menu opens with AI completions alongside LSP items"
+  - "AI completions visibly include project context (imports, types, related functions from other files)"
+  - "Single-line completions work (next line/token prediction)"
+  - "Multi-line completions work (full function/block generation)"
+  - "Completion granularity configurable via model_config or filetype"
+  - "Global toggle command (:AICompletionToggle) and keymap enable/disable the blink.cmp source"
+  - "Works with all configured models (coder, specialist, allrounder, efficient, vision)"
+  - "No Neovim UI freeze during completion request (async vim.system)"
+  - "Graceful error message in blink.cmp menu when server unavailable"
+  - "Existing features (chat, ask_file, edit_code, run_tests) continue working unchanged"
 
 references:
-  - "specs/planning-context.yaml — elaborated decisions and trade-offs"
-  - "specs/product/VISION_LATEST.yaml — product vision and principles"
-  - "specs/tech-architecture/tech-stack.md — current architecture and patterns"
-  - "specs/tech-architecture/TEST_PLAN_LATEST.md — regression test scenarios"
+  - "specs/planning-context.yaml — elaborated decisions and constraints"
+  - "lua/custom_ai/init.lua — existing plugin implementation (1347 lines)"
+  - "blink.cmp documentation: https://github.com/Saghen/blink.cmp"
+  - "Neovim LSP API: :h vim.lsp"
+  - "Neovim treesitter API: :h vim.treesitter"
 
-trade_off_analysis:
-  - item: "Streaming response support"
-    reason: "Deferred — requires SSE parsing, changes queue architecture, separate epic"
-  - item: "Multi-model concurrent serving"
-    reason: "Architectural constraint — single GPU, single port design"
-  - item: "Automatic model download/install"
-    reason: "Not plugin's responsibility — user manages llama.cpp server scripts"
-  - item: "Remote server management"
-    reason: "Out of scope — plugin designed for local-only workflow"
-  - item: "Image preprocessing"
-    reason: "Unnecessary complexity — user provides path, plugin encodes to base64"
+# Traceability: each in_scope story maps to a future epic capsule under specs/epics/e02-*/
+# Out-of-scope items with "Deferred" rationale are candidates for future epics

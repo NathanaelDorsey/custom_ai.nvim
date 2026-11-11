@@ -1,0 +1,76 @@
+# specs/epics/e02-inline-completion/e02s07-tasks.yaml
+# Story: Completion granularity configuration (per-model / per-filetype)
+# BCPs: 3 | Delta: ADDED | Risk: P2
+
+story_id: "e02s07"
+title: "Completion granularity configuration (per-model / per-filetype)"
+status: "failing"
+bcps: 3
+delta: "ADDED"
+risk: "P2"
+
+tasks:
+  - id: "e02s07.1"
+    description: "Extend model_config with completion table: max_lines, temperature, top_p, max_tokens, stop_sequences, prompt_template"
+    verify: "grep -q 'completion = {' lua/custom_ai/init.lua && grep -q 'prompt_template' lua/custom_ai/init.lua && grep -q 'stop_sequences' lua/custom_ai/init.lua && grep -q 'top_p' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+        - "Model"
+
+  - id: "e02s07.2"
+    description: "Add filetype-specific overrides: config.completion.filetypes = { lua = { max_lines = 10 }, python = { max_lines = 5, temperature = 0.1 } }"
+    verify: "grep -q 'filetypes' lua/custom_ai/init.lua && grep -q 'lua' lua/custom_ai/init.lua && grep -q 'python' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+        - "Filetype"
+
+  - id: "e02s07.3"
+    description: "Implement config resolution: model_config → filetype override → global default (deep merge via vim.tbl_deep_extend)"
+    verify: "grep -q 'vim.tbl_deep_extend' lua/custom_ai/completion.lua && grep -q 'resolve.*config' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Configuration"
+        - "Resolution"
+
+  - id: "e02s07.4"
+    description: "Apply resolved config to request: select prompt template, stop sequences, token limits"
+    verify: "grep -q 'stop_sequences\\|prompt_template\\|max_tokens' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Configuration"
+        - "Integration"
+
+  - id: "e02s07.5"
+    description: "Document config options in README.md (completion section)"
+    verify: "test -f README.md && grep -q 'completion' README.md"
+    risk: "P3"
+    status: "failing"
+    allure:
+      severity: "minor"
+      categories:
+        - "Documentation"
+
+  - id: "e02s07.6"
+    description: "Manual test: switch models, verify completion behavior changes; test filetype overrides"
+    verify: "echo 'MANUAL: Switch models via <leader>am, verify completion params change; open different filetypes'"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "E2E"
+        - "Manual Test"

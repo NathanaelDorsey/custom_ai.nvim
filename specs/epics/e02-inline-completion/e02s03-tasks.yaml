@@ -1,0 +1,115 @@
+# specs/epics/e02-inline-completion/e02s03-tasks.yaml
+# Story: Automatic project context gathering (LSP + treesitter)
+# BCPs: 8 | Delta: ADDED | Risk: P0
+
+story_id: "e02s03"
+title: "Automatic project context gathering (LSP + treesitter)"
+status: "failing"
+bcps: 8
+delta: "ADDED"
+risk: "P0"
+
+tasks:
+  - id: "e02s03.1"
+    description: "Create lua/custom_ai/context.lua with gather_context(bufnr, cursor_pos) entry point returning structured table"
+    verify: "test -f lua/custom_ai/context.lua && grep -q 'gather_context' lua/custom_ai/context.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Architecture"
+        - "LSP"
+
+  - id: "e02s03.2"
+    description: "LSP: workspace/symbol request for symbols in current namespace/package (with timeout)"
+    verify: "grep -q 'workspace/symbol' lua/custom_ai/context.lua && grep -q 'timeout' lua/custom_ai/context.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "LSP"
+        - "Async"
+
+  - id: "e02s03.3"
+    description: "LSP: textDocument/references for symbol under cursor (if any)"
+    verify: "grep -q 'textDocument/references' lua/custom_ai/context.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "LSP"
+
+  - id: "e02s03.4"
+    description: "LSP: textDocument/definition for symbol under cursor"
+    verify: "grep -q 'textDocument/definition' lua/custom_ai/context.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "LSP"
+
+  - id: "e02s03.5"
+    description: "LSP: textDocument/documentSymbol for current buffer to extract imports/type defs"
+    verify: "grep -q 'documentSymbol' lua/custom_ai/context.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "LSP"
+
+  - id: "e02s03.6"
+    description: "Treesitter: get parser for buffer, run queries for local functions, types, imports near cursor"
+    verify: "grep -q 'vim.treesitter' lua/custom_ai/context.lua && grep -q 'query' lua/custom_ai/context.lua && grep -q 'get_parser' lua/custom_ai/context.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Treesitter"
+        - "Parsing"
+
+  - id: "e02s03.7"
+    description: "Find test files: check same directory for *_test.*, test_*.*, spec_*.* and test/ directory"
+    verify: "grep -q 'test' lua/custom_ai/context.lua && grep -q 'spec' lua/custom_ai/context.lua && grep -q 'test/' lua/custom_ai/context.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "File Discovery"
+
+  - id: "e02s03.8"
+    description: "Assemble context: deduplicate, rank by relevance, truncate to config.context.max_tokens"
+    verify: "grep -q 'imports\\|types\\|related_fns\\|tests' lua/custom_ai/context.lua && grep -q 'max_tokens' lua/custom_ai/context.lua && grep -q 'truncate\\|sub' lua/custom_ai/context.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Context Assembly"
+
+  - id: "e02s03.9"
+    description: "Add context config to init.lua defaults: max_tokens, include_imports, include_types, include_tests, max_related_files"
+    verify: "grep -q 'context' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'include_imports' lua/custom_ai/init.lua && grep -q 'max_related_files' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+
+  - id: "e02s03.10"
+    description: "Manual test: open multi-file project with LSP, trigger completion, inspect prompt sent to server (debug log)"
+    verify: "echo 'MANUAL: Open multi-file project, trigger completion, inspect prompt sent to server'"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "E2E"
+        - "Manual Test"

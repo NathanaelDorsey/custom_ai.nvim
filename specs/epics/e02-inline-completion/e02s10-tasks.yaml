@@ -1,0 +1,65 @@
+# specs/epics/e02-inline-completion/e02s10-tasks.yaml
+# Story: Integration with existing model switching
+# BCPs: 2 | Delta: ADDED | Risk: P2
+
+story_id: "e02s10"
+title: "Integration with existing model switching"
+status: "failing"
+bcps: 2
+delta: "ADDED"
+risk: "P2"
+
+tasks:
+  - id: "e02s10.1"
+    description: "Ensure completion uses state.current_model_key (set by switch_model, refresh_model)"
+    verify: "grep -q 'current_model_key' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Integration"
+        - "Model"
+
+  - id: "e02s10.2"
+    description: "On model switch: clear any cached context, re-detect capabilities if needed"
+    verify: "grep -q 'switch_model' lua/custom_ai/init.lua && grep -q 'completion' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Integration"
+        - "Model Switch"
+
+  - id: "e02s10.3"
+    description: "Use model-specific completion config from model_config[model_key].completion"
+    verify: "grep -q 'model_config' lua/custom_ai/completion.lua && grep -q 'completion' lua/custom_ai/completion.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+        - "Model"
+
+  - id: "e02s10.4"
+    description: "Verify no separate completion_model config exists in init.lua"
+    verify: "grep -qv 'completion_model' lua/custom_ai/init.lua"
+    risk: "P3"
+    status: "failing"
+    allure:
+      severity: "minor"
+      categories:
+        - "Configuration"
+
+  - id: "e02s10.5"
+    description: "Manual test: switch between coder/specialist/allrounder, verify completion style/quality changes"
+    verify: "echo 'MANUAL: <leader>am switch models, trigger completion, observe differences'"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "E2E"
+        - "Manual Test"

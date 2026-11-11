@@ -1,0 +1,74 @@
+# specs/epics/e02-inline-completion/e02s05-tasks.yaml
+# Story: Single-line completion support (next token/line)
+# BCPs: 3 | Delta: ADDED | Risk: P1
+
+story_id: "e02s05"
+title: "Single-line completion support (next token/line)"
+status: "failing"
+bcps: 3
+delta: "ADDED"
+risk: "P1"
+
+tasks:
+  - id: "e02s05.1"
+    description: "Add model_config.completion.single_line = { max_tokens = 64, temperature = 0.2, stop = {'\\n'} } to defaults in init.lua for each model"
+    verify: "grep -q 'single_line' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'temperature' lua/custom_ai/init.lua && grep -q 'stop' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+        - "Model"
+
+  - id: "e02s05.2"
+    description: "Create single-line prompt template in completion.lua: minimal context, instruct model to generate only next logical line"
+    verify: "grep -q 'single.line\\|single_line' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Prompt Engineering"
+
+  - id: "e02s05.3"
+    description: "Parse llama.cpp response: choices[0].text, split on \\n, take first non-empty line, trim"
+    verify: "grep -q '\\\\n' lua/custom_ai/completion.lua && grep -q 'sub\\|match\\|gmatch' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Parsing"
+
+  - id: "e02s05.4"
+    description: "Return blink.cmp item: kind=Snippet, insertText=single_line, detail='AI (1-line)'"
+    verify: "grep -q 'Snippet' lua/custom_ai/completion.lua && grep -q 'single.line' lua/custom_ai/completion.lua && grep -q 'detail' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Integration"
+        - "blink.cmp"
+
+  - id: "e02s05.5"
+    description: "Config: model_config.completion.max_lines = 1 forces single-line mode (check in request_completion)"
+    verify: "grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/completion.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+
+  - id: "e02s05.6"
+    description: "Manual test: trigger completion in various positions (mid-line, after return, after dot), verify single-line results"
+    verify: "echo 'MANUAL: Test single-line completions at different cursor positions'"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "E2E"
+        - "Manual Test"

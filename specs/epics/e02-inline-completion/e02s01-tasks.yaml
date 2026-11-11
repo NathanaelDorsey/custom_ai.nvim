@@ -1,0 +1,108 @@
+# specs/epics/e02-inline-completion/e02s01-tasks.yaml
+# Story: Tracer Bullet: Manual trigger → blink.cmp source → single-line completion
+# BCPs: 5 | Delta: ADDED | Risk: P0
+
+story_id: "e02s01"
+title: "Tracer Bullet: Manual trigger → blink.cmp source → single-line completion"
+status: "failing"
+bcps: 5
+delta: "ADDED"
+risk: "P0"
+
+tasks:
+  - id: "e02s01.1"
+    description: "Create lua/custom_ai/completion.lua module with blink.cmp source boilerplate (name, get_completions function)"
+    verify: "test -f lua/custom_ai/completion.lua && grep -q 'get_completions' lua/custom_ai/completion.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Integration"
+        - "blink.cmp"
+
+  - id: "e02s01.2"
+    description: "Add blink.cmp source registration in custom_ai.setup() — merge user's blink.cmp sources with custom_ai source, respecting config.completion.enabled"
+    verify: "grep -q 'blink.cmp' lua/custom_ai/init.lua && grep -q 'completion' lua/custom_ai/init.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Integration"
+        - "Configuration"
+
+  - id: "e02s01.3"
+    description: "Add insert-mode keymap <C-space> (configurable via config.keymaps.completion_trigger) that calls blink.cmp's manual trigger API"
+    verify: "grep -q 'completion_trigger' lua/custom_ai/init.lua && grep -q '<C-space>' lua/custom_ai/init.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Keymaps"
+        - "UX"
+
+  - id: "e02s01.4"
+    description: "Implement request_completion(context, callback) in completion.lua using vim.system() POST to /v1/completions with minimal prompt"
+    verify: "grep -q 'request_completion' lua/custom_ai/completion.lua && grep -q 'vim.system' lua/custom_ai/completion.lua && grep -q '/v1/completions' lua/custom_ai/completion.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Async"
+        - "API"
+
+  - id: "e02s01.5"
+    description: "Build minimal prompt template: system instruction + file prefix (5 lines before cursor) + cursor line"
+    verify: "grep -q 'prompt' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Prompt Engineering"
+
+  - id: "e02s01.6"
+    description: "Parse llama.cpp /v1/completions response: extract choices[0].text, take text before first \n, trim"
+    verify: "grep -q 'choices\\[0\\]\\.text' lua/custom_ai/completion.lua && grep -q '\\\\n' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Parsing"
+        - "API"
+
+  - id: "e02s01.7"
+    description: "Return blink.cmp completion item: label, kind=Snippet, detail='AI (1-line)', insertText"
+    verify: "grep -q 'CompletionItemKind' lua/custom_ai/completion.lua && grep -q 'insertText' lua/custom_ai/completion.lua && grep -q 'Snippet' lua/custom_ai/completion.lua"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "Integration"
+        - "blink.cmp"
+
+  - id: "e02s01.8"
+    description: "Add completion config defaults to init.lua: completion = { enabled = true, keymap = '<C-space>', trigger_chars = {} } and model_config[*].completion"
+    verify: "grep -q 'completion = {' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'enabled' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+
+  - id: "e02s01.9"
+    description: "Manual E2E test: start llama.cpp server, open Neovim, type code, press <C-space>, verify blink.cmp menu shows AI item"
+    verify: "echo 'MANUAL: Start server, open nvim, type \"local function test()\", press <C-space>, verify AI completion appears in blink.cmp menu'"
+    risk: "P0"
+    status: "failing"
+    allure:
+      severity: "critical"
+      categories:
+        - "E2E"
+        - "Manual Test"

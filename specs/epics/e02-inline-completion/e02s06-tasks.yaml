@@ -1,0 +1,85 @@
+# specs/epics/e02-inline-completion/e02s06-tasks.yaml
+# Story: Multi-line block completion support (functions, control structures)
+# BCPs: 5 | Delta: ADDED | Risk: P1
+
+story_id: "e02s06"
+title: "Multi-line block completion support (functions, control structures)"
+status: "failing"
+bcps: 5
+delta: "ADDED"
+risk: "P1"
+
+tasks:
+  - id: "e02s06.1"
+    description: "Add model_config.completion.multi_line = { max_tokens = 512, temperature = 0.3, stop = {'```', 'function', 'class'} } to defaults in init.lua"
+    verify: "grep -q 'multi_line' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'stop' lua/custom_ai/init.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+        - "Model"
+
+  - id: "e02s06.2"
+    description: "Create multi-line prompt template in completion.lua: richer context, instruct model to generate complete block with proper indentation"
+    verify: "grep -q 'multi.line\\|multi_line' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Prompt Engineering"
+
+  - id: "e02s06.3"
+    description: "Parse multi-line response: strip markdown ``` fences, preserve indentation, detect language, add $0 placeholder"
+    verify: "grep -q 'indentation\\|gsub\\|```' lua/custom_ai/completion.lua && grep -q '\\$0' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Parsing"
+
+  - id: "e02s06.4"
+    description: "Return blink.cmp item: kind=Snippet, insertText=multi_line_with_$0, detail='AI (multi-line)'"
+    verify: "grep -q 'insertText' lua/custom_ai/completion.lua && grep -q '\\$0' lua/custom_ai/completion.lua && grep -q 'multi.line' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Integration"
+        - "blink.cmp"
+
+  - id: "e02s06.5"
+    description: "Config: model_config.completion.max_lines > 1 (or = 0 for unlimited) enables multi-line mode"
+    verify: "grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/completion.lua"
+    risk: "P2"
+    status: "failing"
+    allure:
+      severity: "normal"
+      categories:
+        - "Configuration"
+
+  - id: "e02s06.6"
+    description: "Smart detection: check cursor context (function/class/control structure start) → auto-select mode"
+    verify: "grep -q 'function\\|class\\|if\\|for\\|while' lua/custom_ai/completion.lua"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "Smart Detection"
+        - "UX"
+
+  - id: "e02s06.7"
+    description: "Manual test: trigger at function definition, class, if/for/while, verify multi-line block generated"
+    verify: "echo 'MANUAL: Test multi-line at function start, class, control structures'"
+    risk: "P1"
+    status: "failing"
+    allure:
+      severity: "high"
+      categories:
+        - "E2E"
+        - "Manual Test"
