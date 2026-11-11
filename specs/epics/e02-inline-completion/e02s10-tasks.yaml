@@ -4,7 +4,7 @@
 
 story_id: "e02s10"
 title: "Integration with existing model switching"
-status: "failing"
+status: "passing"
 bcps: 2
 delta: "ADDED"
 risk: "P2"
@@ -14,7 +14,7 @@ tasks:
     description: "Ensure completion uses state.current_model_key (set by switch_model, refresh_model)"
     verify: "grep -q 'current_model_key' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -25,7 +25,7 @@ tasks:
     description: "On model switch: clear any cached context, re-detect capabilities if needed"
     verify: "grep -q 'switch_model' lua/custom_ai/init.lua && grep -q 'completion' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -36,7 +36,7 @@ tasks:
     description: "Use model-specific completion config from model_config[model_key].completion"
     verify: "grep -q 'model_config' lua/custom_ai/completion.lua && grep -q 'completion' lua/custom_ai/completion.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -47,7 +47,7 @@ tasks:
     description: "Verify no separate completion_model config exists in init.lua"
     verify: "grep -qv 'completion_model' lua/custom_ai/init.lua"
     risk: "P3"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "minor"
       categories:

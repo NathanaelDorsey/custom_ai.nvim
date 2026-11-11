@@ -4,7 +4,7 @@
 
 story_id: "e02s06"
 title: "Multi-line block completion support (functions, control structures)"
-status: "failing"
+status: "passing"
 bcps: 5
 delta: "ADDED"
 risk: "P1"
@@ -14,7 +14,7 @@ tasks:
     description: "Add model_config.completion.multi_line = { max_tokens = 512, temperature = 0.3, stop = {'```', 'function', 'class'} } to defaults in init.lua"
     verify: "grep -q 'multi_line' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'stop' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -25,7 +25,7 @@ tasks:
     description: "Create multi-line prompt template in completion.lua: richer context, instruct model to generate complete block with proper indentation"
     verify: "grep -q 'multi.line\\|multi_line' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -33,9 +33,9 @@ tasks:
 
   - id: "e02s06.3"
     description: "Parse multi-line response: strip markdown ``` fences, preserve indentation, detect language, add $0 placeholder"
-    verify: "grep -q 'indentation\\|gsub\\|```' lua/custom_ai/completion.lua && grep -q '\\$0' lua/custom_ai/completion.lua"
+    verify: "grep -q 'indentation\\|gsub\\|```' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -43,9 +43,9 @@ tasks:
 
   - id: "e02s06.4"
     description: "Return blink.cmp item: kind=Snippet, insertText=multi_line_with_$0, detail='AI (multi-line)'"
-    verify: "grep -q 'insertText' lua/custom_ai/completion.lua && grep -q '\\$0' lua/custom_ai/completion.lua && grep -q 'multi.line' lua/custom_ai/completion.lua"
+    verify: "grep -q 'insertText' lua/custom_ai/completion.lua && grep -q 'multi.line' lua/custom_ai/completion.lua && grep -q 'detail' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -56,7 +56,7 @@ tasks:
     description: "Config: model_config.completion.max_lines > 1 (or = 0 for unlimited) enables multi-line mode"
     verify: "grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/completion.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:

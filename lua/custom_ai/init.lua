@@ -47,11 +47,11 @@ local defaults = {
 
   -- Per-model generation parameters
   model_config = {
-    allrounder = { temperature = 0.7, top_p = 0.8, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.2, max_tokens = 64, stop_sequences = { "\n" } } },
-    coder      = { temperature = 0.3, top_p = 0.9, max_tokens = 8192, completion = { max_lines = 10, temperature = 0.2, max_tokens = 256, stop_sequences = { "\n" } } },
-    specialist = { temperature = 0.2, top_p = 0.95, max_tokens = 8192, completion = { max_lines = 20, temperature = 0.2, max_tokens = 512, stop_sequences = { "\n" } } },
-    efficient  = { temperature = 0.5, top_p = 0.9, max_tokens = 2048, completion = { max_lines = 5, temperature = 0.2, max_tokens = 128, stop_sequences = { "\n" } } },
-    vision     = { temperature = 0.4, top_p = 0.9, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.3, max_tokens = 64, stop_sequences = { "\n" } } },
+    allrounder = { temperature = 0.7, top_p = 0.8, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.2, top_p = 0.8, max_tokens = 64, stop_sequences = { "\n" }, prompt_template = nil } },
+    coder      = { temperature = 0.3, top_p = 0.9, max_tokens = 8192, completion = { max_lines = 10, temperature = 0.2, top_p = 0.9, max_tokens = 256, stop_sequences = { "\n" }, prompt_template = nil } },
+    specialist = { temperature = 0.2, top_p = 0.95, max_tokens = 8192, completion = { max_lines = 20, temperature = 0.2, top_p = 0.95, max_tokens = 512, stop_sequences = { "\n" }, prompt_template = nil } },
+    efficient  = { temperature = 0.5, top_p = 0.9, max_tokens = 2048, completion = { max_lines = 5, temperature = 0.2, top_p = 0.9, max_tokens = 128, stop_sequences = { "\n" }, prompt_template = nil } },
+    vision     = { temperature = 0.4, top_p = 0.9, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.3, top_p = 0.9, max_tokens = 64, stop_sequences = { "\n" }, prompt_template = nil } },
   },
 
   -- Default model key (must exist in `models`)
@@ -120,6 +120,37 @@ local defaults = {
     keymap = "<C-space>",
     trigger_chars = {},
     max_items = 5,
+    -- Global defaults (used as base for deep merge)
+    temperature = 0.2,
+    top_p = 0.8,
+    max_tokens = 64,
+    stop_sequences = { "\n" },
+    max_lines = 1,
+    prompt_template = nil,
+    -- Filetype-specific overrides (merged on top of model_config.completion)
+    filetypes = {
+      lua = { max_lines = 10, temperature = 0.1, top_p = 0.95 },
+      python = { max_lines = 5, temperature = 0.1, top_p = 0.9 },
+      javascript = { max_lines = 8, temperature = 0.2 },
+      typescript = { max_lines = 8, temperature = 0.2 },
+      go = { max_lines = 10, temperature = 0.15 },
+      rust = { max_lines = 15, temperature = 0.15 },
+      c = { max_lines = 5, temperature = 0.1 },
+      cpp = { max_lines = 5, temperature = 0.1 },
+      java = { max_lines = 8, temperature = 0.15 },
+      html = { max_lines = 3, temperature = 0.2 },
+      css = { max_lines = 3, temperature = 0.2 },
+      json = { max_lines = 1, temperature = 0.05 },
+      yaml = { max_lines = 3, temperature = 0.1 },
+      markdown = { max_lines = 3, temperature = 0.3 },
+      sql = { max_lines = 5, temperature = 0.1 },
+      sh = { max_lines = 3, temperature = 0.1 },
+      bash = { max_lines = 3, temperature = 0.1 },
+      zsh = { max_lines = 3, temperature = 0.1 },
+      fish = { max_lines = 3, temperature = 0.1 },
+      dockerfile = { max_lines = 3, temperature = 0.1 },
+      toml = { max_lines = 3, temperature = 0.1 },
+    },
   },
 }
 

@@ -42,28 +42,28 @@ stories:
     bcps: 5
     delta: "ADDED"
     description: "Non-blocking vim.system() POST to /v1/completions (or /v1/chat/completions) with assembled context. Handle queue, cancellation, timeouts."
-    status: "pending"
+    status: "completed"
 
   - story_id: "e02s05"
     title: "Single-line completion support (next token/line)"
     bcps: 3
     delta: "ADDED"
     description: "Prompt engineering for single-line completions. Parse response into blink.cmp item(s). Configurable via model_config.completion.max_lines = 1."
-    status: "pending"
+    status: "completed"
 
   - story_id: "e02s06"
     title: "Multi-line block completion support (functions, control structures)"
     bcps: 5
     delta: "ADDED"
     description: "Prompt engineering for multi-line completions. Parse response preserving indentation. Configurable via model_config.completion.max_lines > 1."
-    status: "pending"
+    status: "completed"
 
-  - story_id: "e02s07"
+  - id: "e02s07"
     title: "Completion granularity configuration (per-model / per-filetype)"
     bcps: 3
     delta: "ADDED"
     description: "Add completion config to model_config: max_lines, temperature, stop_sequences. Allow filetype overrides."
-    status: "pending"
+    status: "completed"
 
   - story_id: "e02s08"
     title: "Global on/off toggle (command + keymap)"
@@ -77,18 +77,18 @@ stories:
     bcps: 3
     delta: "ADDED"
     description: "Show error item in blink.cmp menu when server down / timeout / parse error. No UI blocking. Auto-retry on next trigger."
-    status: "pending"
+    status: "completed"
 
   - story_id: "e02s10"
     title: "Integration with existing model switching"
     bcps: 2
     delta: "ADDED"
     description: "Completion uses active model (state.current_model_key). Refresh context on model switch. No separate completion model needed."
-    status: "pending"
+    status: "completed"
 
 # Total BCPs: 39
-# Completed BCPs: 16 (e02s01, e02s02, e02s03, e02s08)
-# Remaining BCPs: 23
+# Completed BCPs: 39 (all stories)
+# Manual E2E tests pending for each story
 
 # Dependencies: none (standalone epic, builds on existing custom_ai foundation)
 # Risks: blink.cmp API stability, LSP context gathering performance, llama.cpp completion endpoint compatibility

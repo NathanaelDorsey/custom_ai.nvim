@@ -4,7 +4,7 @@
 
 story_id: "e02s05"
 title: "Single-line completion support (next token/line)"
-status: "failing"
+status: "passing"
 bcps: 3
 delta: "ADDED"
 risk: "P1"
@@ -14,7 +14,7 @@ tasks:
     description: "Add model_config.completion.single_line = { max_tokens = 64, temperature = 0.2, stop = {'\\n'} } to defaults in init.lua for each model"
     verify: "grep -q 'single_line' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'temperature' lua/custom_ai/init.lua && grep -q 'stop' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -25,7 +25,7 @@ tasks:
     description: "Create single-line prompt template in completion.lua: minimal context, instruct model to generate only next logical line"
     verify: "grep -q 'single.line\\|single_line' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -35,7 +35,7 @@ tasks:
     description: "Parse llama.cpp response: choices[0].text, split on \\n, take first non-empty line, trim"
     verify: "grep -q '\\\\n' lua/custom_ai/completion.lua && grep -q 'sub\\|match\\|gmatch' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -45,7 +45,7 @@ tasks:
     description: "Return blink.cmp item: kind=Snippet, insertText=single_line, detail='AI (1-line)'"
     verify: "grep -q 'Snippet' lua/custom_ai/completion.lua && grep -q 'single.line' lua/custom_ai/completion.lua && grep -q 'detail' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -56,7 +56,7 @@ tasks:
     description: "Config: model_config.completion.max_lines = 1 forces single-line mode (check in request_completion)"
     verify: "grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/completion.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:

@@ -4,7 +4,7 @@
 
 story_id: "e02s04"
 title: "Async completion request to llama.cpp with context injection"
-status: "failing"
+status: "passing"
 bcps: 5
 delta: "ADDED"
 risk: "P0"
@@ -14,7 +14,7 @@ tasks:
     description: "Add request_completion(context, callback) to completion.lua using vim.system() async POST to /v1/completions"
     verify: "grep -q 'request_completion' lua/custom_ai/completion.lua && grep -q 'vim.system' lua/custom_ai/completion.lua && grep -q '/v1/completions' lua/custom_ai/completion.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -25,7 +25,7 @@ tasks:
     description: "Build prompt template: system prompt + context sections + current file prefix + cursor context"
     verify: "grep -q 'prompt' lua/custom_ai/completion.lua && grep -q 'context' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -35,7 +35,7 @@ tasks:
     description: "Add completion-specific queue or reuse state.queue to prevent overlapping requests"
     verify: "grep -q 'queue' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -46,7 +46,7 @@ tasks:
     description: "Handle cancellation: if new trigger before previous completes, cancel previous (vim.system handle:kill())"
     verify: "grep -q 'kill\\|cancel' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -57,7 +57,7 @@ tasks:
     description: "Add timeout config (default 5000ms) to vim.system call, handle timeout in callback"
     verify: "grep -q 'timeout' lua/custom_ai/completion.lua && grep -q '5000' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -68,7 +68,7 @@ tasks:
     description: "Error handling: network error, server error, parse error → return error completion item"
     verify: "grep -q 'error' lua/custom_ai/completion.lua && grep -q 'result.code' lua/custom_ai/completion.lua && grep -q 'result.stderr' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -79,7 +79,7 @@ tasks:
     description: "Integrate with context.lua: call gather_context, inject into prompt, send request"
     verify: "grep -q 'require.*context' lua/custom_ai/completion.lua && grep -q 'gather_context' lua/custom_ai/completion.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -90,7 +90,7 @@ tasks:
     description: "Use model-specific params from model_config[model_key].completion (temperature, max_tokens, stop)"
     verify: "grep -q 'model_config' lua/custom_ai/completion.lua && grep -q 'temperature' lua/custom_ai/completion.lua && grep -q 'stop' lua/custom_ai/completion.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
