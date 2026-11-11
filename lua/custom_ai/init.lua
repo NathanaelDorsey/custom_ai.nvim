@@ -625,6 +625,10 @@ function M.refresh_model()
   return config.default_model
 end
 
+-- Forward-declared so M.switch_model's deferred callback can reference it;
+-- setup_keymaps is defined later in this chunk.
+local setup_keymaps
+
 function M.switch_model()
   local choices = {}
   for key, name in pairs(config.models) do
@@ -911,7 +915,7 @@ end
 -- Keymaps
 -- ---------------------------------------------------------------------------
 
-local function setup_keymaps(buf, win, messages, detected_vision)
+setup_keymaps = function(buf, win, messages, detected_vision)
   local km = config.keymaps
   local is_global = config.global_keymaps
 
