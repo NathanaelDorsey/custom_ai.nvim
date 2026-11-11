@@ -1540,6 +1540,11 @@ M.detect_running_model = detect_running_model
 -- Toggle AI completion on/off
 function M.toggle_completion()
   state.completion_enabled = not state.completion_enabled
+  -- Keep config.completion.enabled in sync so the blink.cmp source's enabled()
+  -- closure (which reads config_ref.completion.enabled) reflects the toggle.
+  if config.completion then
+    config.completion.enabled = state.completion_enabled
+  end
   vim.notify("AI Completion: " .. (state.completion_enabled and "enabled" or "disabled"), vim.log.levels.INFO)
   -- Re-register blink.cmp source to reflect the change
   local ok, blink = pcall(require, "blink.cmp")
