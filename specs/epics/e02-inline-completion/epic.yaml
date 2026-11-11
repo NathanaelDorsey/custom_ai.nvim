@@ -28,7 +28,7 @@ stories:
     bcps: 3
     delta: "ADDED"
     description: "Register custom_ai as a blink.cmp source with proper kind/label, respect global toggle, integrate with custom_ai config system."
-    status: "pending"
+    status: "completed"
 
   - story_id: "e02s03"
     title: "Automatic project context gathering (LSP + treesitter)"

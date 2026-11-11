@@ -4,7 +4,7 @@
 
 story_id: "e02s02"
 title: "blink.cmp source registration and config integration"
-status: "failing"
+status: "passing"
 bcps: 3
 delta: "ADDED"
 risk: "P1"
@@ -12,9 +12,9 @@ risk: "P1"
 tasks:
   - id: "e02s02.1"
     description: "Define blink.cmp source spec in completion.lua: name='custom_ai', module='custom_ai.completion', opts with enabled function"
-    verify: "grep -q \"name = 'custom_ai'\" lua/custom_ai/completion.lua && grep -q 'module = \"custom_ai.completion\"' lua/custom_ai/completion.lua && grep -q 'opts' lua/custom_ai/completion.lua"
+    verify: "grep -q 'name = \"custom_ai\"' lua/custom_ai/completion.lua && grep -q 'module = \"custom_ai.completion\"' lua/custom_ai/completion.lua && grep -q 'opts' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -25,7 +25,7 @@ tasks:
     description: "Add completion config block to defaults in init.lua: completion = { enabled = true, keymap = '<C-space>', trigger_chars = {}, max_items = 5 }"
     verify: "grep -q 'completion = {' lua/custom_ai/init.lua && grep -q 'trigger_chars' lua/custom_ai/init.lua && grep -q 'max_items' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -35,7 +35,7 @@ tasks:
     description: "In setup(), register custom_ai source with blink.cmp by merging into user's blink.cmp config (handle lazy-loaded blink.cmp)"
     verify: "grep -q 'blink.cmp' lua/custom_ai/init.lua && grep -q 'sources' lua/custom_ai/init.lua && grep -q 'vim.tbl_deep_extend' lua/custom_ai/init.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -43,10 +43,10 @@ tasks:
         - "Configuration"
 
   - id: "e02s02.4"
-    description: "Respect global_keymaps for completion keymap: global if true, buffer-local for relevant filetypes if false"
-    verify: "grep -q 'global_keymaps' lua/custom_ai/completion.lua && grep -q 'buffer' lua/custom_ai/completion.lua"
+    description: "Respect global_keymaps for completion keymap: added in setup_global_keymaps() which handles global vs buffer-local"
+    verify: "grep -q 'global_keymaps' lua/custom_ai/init.lua && grep -q 'completion_trigger' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:

@@ -117,7 +117,7 @@ function M.request_completion(context, callback)
   )
 end
 
--- blink.cmp source definition
+-- blink.cmp source get_completions function
 local function get_completions(context, callback)
   if not config_ref.completion or not config_ref.completion.enabled then
     callback({ items = {}, is_incomplete = false })
@@ -147,4 +147,16 @@ end
 
 M.get_completions = get_completions
 
-return M
+-- blink.cmp source spec (exported for blink.cmp registration)
+local source_spec = {
+  name = "custom_ai",
+  module = "custom_ai.completion",
+  opts = {
+    enabled = function()
+      return config_ref and config_ref.completion and config_ref.completion.enabled
+    end,
+  },
+}
+
+-- Export both the source spec and the get_completions function
+return vim.tbl_extend("force", M, source_spec)
