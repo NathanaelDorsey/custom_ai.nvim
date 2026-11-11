@@ -171,6 +171,12 @@ All AI keymaps use `<leader>a` as a prefix (except toggle which uses `<leader>.`
 | `show_scripts()` | Show startup scripts reminder |
 | `new_chat()` | Clear chat history |
 
+**Commands** (available regardless of `global_keymaps` setting):
+
+| Command | Action |
+|---------|--------|
+| `:AIChat` | Open/toggle AI chat window |
+
 ## Workflow
 
 1. **Start a server** in a terminal:
@@ -180,13 +186,15 @@ All AI keymaps use `<leader>a` as a prefix (except toggle which uses `<leader>.`
 
 2. **Open Neovim** — the plugin auto-detects the running model on startup
 
-3. **Open chat**: `<leader>.`
+3. **Open chat**: `<leader>.` (or run `:AIChat`)
 
 4. **Send a message**: `<leader>as` (or `<leader>av` for vision with an image)
 
 5. **Switch models**: `<leader>am` (or call `:lua require("custom_ai").switch_model()`)
 
 6. **Refresh model detection**: `<leader>ar` (or call `:lua require("custom_ai").refresh_model()`)
+
+> **Note:** `:AIChat` works even when `global_keymaps = false` since it's a command, not a keymap.
 
 ## Requirements
 

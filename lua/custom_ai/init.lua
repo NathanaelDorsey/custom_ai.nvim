@@ -144,6 +144,9 @@ function M.setup(opts)
   if config.global_keymaps ~= false then
     M.setup_chat_keymaps_global()
   end
+
+  -- Always create user command for opening chat (works regardless of global_keymaps)
+  vim.api.nvim_create_user_command("AIChat", M.chat, { desc = "Open AI chat window" })
 end
 
 -- Set up keymaps that work from any buffer (model mgmt, file ops, tests)
