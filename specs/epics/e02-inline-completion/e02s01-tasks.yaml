@@ -4,7 +4,7 @@
 
 story_id: "e02s01"
 title: "Tracer Bullet: Manual trigger → blink.cmp source → single-line completion"
-status: "failing"
+status: "passing"
 bcps: 5
 delta: "ADDED"
 risk: "P0"
@@ -14,7 +14,7 @@ tasks:
     description: "Create lua/custom_ai/completion.lua module with blink.cmp source boilerplate (name, get_completions function)"
     verify: "test -f lua/custom_ai/completion.lua && grep -q 'get_completions' lua/custom_ai/completion.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -25,7 +25,7 @@ tasks:
     description: "Add blink.cmp source registration in custom_ai.setup() — merge user's blink.cmp sources with custom_ai source, respecting config.completion.enabled"
     verify: "grep -q 'blink.cmp' lua/custom_ai/init.lua && grep -q 'completion' lua/custom_ai/init.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -36,7 +36,7 @@ tasks:
     description: "Add insert-mode keymap <C-space> (configurable via config.keymaps.completion_trigger) that calls blink.cmp's manual trigger API"
     verify: "grep -q 'completion_trigger' lua/custom_ai/init.lua && grep -q '<C-space>' lua/custom_ai/init.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -47,7 +47,7 @@ tasks:
     description: "Implement request_completion(context, callback) in completion.lua using vim.system() POST to /v1/completions with minimal prompt"
     verify: "grep -q 'request_completion' lua/custom_ai/completion.lua && grep -q 'vim.system' lua/custom_ai/completion.lua && grep -q '/v1/completions' lua/custom_ai/completion.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -58,7 +58,7 @@ tasks:
     description: "Build minimal prompt template: system instruction + file prefix (5 lines before cursor) + cursor line"
     verify: "grep -q 'prompt' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -68,7 +68,7 @@ tasks:
     description: "Parse llama.cpp /v1/completions response: extract choices[0].text, take text before first \n, trim"
     verify: "grep -q 'choices\\[0\\]\\.text' lua/custom_ai/completion.lua && grep -q '\\\\n' lua/custom_ai/completion.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -79,7 +79,7 @@ tasks:
     description: "Return blink.cmp completion item: label, kind=Snippet, detail='AI (1-line)', insertText"
     verify: "grep -q 'CompletionItemKind' lua/custom_ai/completion.lua && grep -q 'insertText' lua/custom_ai/completion.lua && grep -q 'Snippet' lua/custom_ai/completion.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -90,7 +90,7 @@ tasks:
     description: "Add completion config defaults to init.lua: completion = { enabled = true, keymap = '<C-space>', trigger_chars = {} } and model_config[*].completion"
     verify: "grep -q 'completion = {' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'enabled' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:

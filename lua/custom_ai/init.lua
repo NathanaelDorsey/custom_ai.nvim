@@ -46,11 +46,11 @@ local defaults = {
 
   -- Per-model generation parameters
   model_config = {
-    allrounder = { temperature = 0.7, top_p = 0.8, max_tokens = 4096 },
-    coder      = { temperature = 0.3, top_p = 0.9, max_tokens = 8192 },
-    specialist = { temperature = 0.2, top_p = 0.95, max_tokens = 8192 },
-    efficient  = { temperature = 0.5, top_p = 0.9, max_tokens = 2048 },
-    vision     = { temperature = 0.4, top_p = 0.9, max_tokens = 4096 },
+    allrounder = { temperature = 0.7, top_p = 0.8, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.2, stop = { "\n" } } },
+    coder      = { temperature = 0.3, top_p = 0.9, max_tokens = 8192, completion = { max_lines = 10, temperature = 0.2, stop = { "\n" } } },
+    specialist = { temperature = 0.2, top_p = 0.95, max_tokens = 8192, completion = { max_lines = 20, temperature = 0.2, stop = { "\n" } } },
+    efficient  = { temperature = 0.5, top_p = 0.9, max_tokens = 2048, completion = { max_lines = 5, temperature = 0.2, stop = { "\n" } } },
+    vision     = { temperature = 0.4, top_p = 0.9, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.3, stop = { "\n" } } },
   },
 
   -- Default model key (must exist in `models`)
@@ -87,17 +87,27 @@ local defaults = {
 
   -- Keymaps (all use <leader>a prefix by default)
   keymaps = {
-    send_msg      = "<leader>as",   -- Send message (text only)
-    vision_msg    = "<leader>av",   -- Send message + image (vision models)
-    new_chat      = "<leader>an",   -- New chat (clear history)
-    toggle_chat   = "<leader>.",    -- Toggle chat window show/hide
-    run_tests     = "<leader>at",   -- Run tests -> AI analysis
-    edit_code     = "<leader>ae",   -- Edit code in place (whole file)
-    ask_file      = "<leader>af",   -- Ask AI about current file
-    edit_sel      = "<leader>ah",   -- AI edit highlighted selection
-    show_scripts  = "<leader>ai",   -- Show startup scripts reminder
-    switch_model  = "<leader>am",   -- Switch AI model
-    refresh_model = "<leader>ar",   -- Refresh model detection
+    send_msg           = "<leader>as",   -- Send message (text only)
+    vision_msg         = "<leader>av",   -- Send message + image (vision models)
+    new_chat           = "<leader>an",   -- New chat (clear history)
+    toggle_chat        = "<leader>.",    -- Toggle chat window show/hide
+    run_tests          = "<leader>at",   -- Run tests -> AI analysis
+    edit_code          = "<leader>ae",   -- Edit code in place (whole file)
+    ask_file           = "<leader>af",   -- Ask AI about current file
+    edit_sel           = "<leader>ah",   -- AI edit highlighted selection
+    show_scripts       = "<leader>ai",   -- Show startup scripts reminder
+    switch_model       = "<leader>am",   -- Switch AI model
+    refresh_model      = "<leader>ar",   -- Refresh model detection
+    completion_trigger = "<C-space>",    -- Trigger AI completion (insert mode)
+    toggle_completion  = "<leader>ac",   -- Toggle AI completion on/off
+  },
+
+  -- Completion configuration
+  completion = {
+    enabled       = true,
+    keymap        = "<C-space>",
+    trigger_chars = {},
+    max_items     = 5,
   },
 
   -- Keymap scope: true = global (work anywhere), false = buffer-local (chat window only)
@@ -118,6 +128,7 @@ local state = {
   detected_vision = false,
   server_pid = nil,
   current_model_key = nil,
+  completion_enabled = true,
 }
 
 local config = {}
@@ -136,6 +147,38 @@ function M.setup(opts)
   end
 
   state.current_model_key = config.default_model
+
+  -- Initialize completion module refs
+  local completion = require("custom_ai.completion")
+  completion.set_refs(config, state)
+
+  -- Register blink.cmp source if blink.cmp is available and completion enabled
+  if config.completion and config.completion.enabled then
+    local ok, blink = pcall(require, "blink.cmp")
+    if ok and blink.config then
+      local sources = blink.config.sources or {}
+      local default_sources = sources.default or {}
+      -- Add custom_ai to default sources if not already present
+      local has_custom_ai = false
+      for _, src in ipairs(default_sources) do
+        if src == "custom_ai" then has_custom_ai = true break end
+      end
+      if not has_custom_ai then
+        table.insert(default_sources, "custom_ai")
+      end
+      -- Ensure custom_ai source is configured
+      if not sources.providers then sources.providers = {} end
+      sources.providers.custom_ai = {
+        name = "custom_ai",
+        module = "custom_ai.completion",
+        opts = {
+          enabled = function() return config.completion and config.completion.enabled end,
+        },
+      }
+      -- Update blink.cmp config
+      blink.config.sources = sources
+    end
+  end
 
   -- Always set up keymaps that work from anywhere (model mgmt, file ops, tests)
   M.setup_global_keymaps()
@@ -160,6 +203,16 @@ function M.setup_global_keymaps()
   vim.keymap.set("n", km.edit_code, M.edit_code, { desc = "Edit whole file with AI" })
   vim.keymap.set("n", km.edit_sel, M.edit_selection, { desc = "AI edit highlighted selection" })
   vim.keymap.set("n", km.show_scripts, M.show_scripts, { desc = "Show AI startup scripts" })
+
+  -- Completion keymaps (insert mode)
+  vim.keymap.set("i", km.completion_trigger, function()
+    local blink = require("blink.cmp")
+    blink.show({ providers = { "custom_ai" } })
+  end, { desc = "Trigger AI completion" })
+
+  vim.keymap.set("n", km.toggle_completion, function()
+    M.toggle_completion()
+  end, { desc = "Toggle AI completion" })
 end
 
 -- Set up chat-window keymaps as global (when global_keymaps=true)
@@ -1430,6 +1483,24 @@ function M.new_chat()
 end
 
 -- Export detect_running_model for external access
+
+-- Toggle AI completion on/off
+function M.toggle_completion()
+  state.completion_enabled = not state.completion_enabled
+  vim.notify("AI Completion: " .. (state.completion_enabled and "enabled" or "disabled"), vim.log.levels.INFO)
+  -- Re-register blink.cmp source to reflect the change
+  local ok, blink = pcall(require, "blink.cmp")
+  if ok and blink.config and blink.config.sources then
+    local providers = blink.config.sources.providers or {}
+    if providers.custom_ai then
+      providers.custom_ai.opts = providers.custom_ai.opts or {}
+      providers.custom_ai.opts.enabled = function() return state.completion_enabled end
+    end
+  end
+end
+
+-- User command to toggle completion
+vim.api.nvim_create_user_command("AICompletionToggle", M.toggle_completion, { desc = "Toggle AI completion on/off" })
 M.detect_running_model = detect_running_model
 
 return M
