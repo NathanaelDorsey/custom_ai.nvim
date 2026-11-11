@@ -35,7 +35,7 @@ stories:
     bcps: 8
     delta: "ADDED"
     description: "Gather imports, type definitions, related functions, test files via vim.lsp (workspace symbols, references, definitions) and vim.treesitter (local AST). Inject into completion prompt."
-    status: "pending"
+    status: "completed"
 
   - story_id: "e02s04"
     title: "Async completion request to llama.cpp with context injection"
@@ -70,7 +70,7 @@ stories:
     bcps: 2
     delta: "ADDED"
     description: ":AICompletionToggle command and <leader>ac keymap to enable/disable blink.cmp source registration at runtime."
-    status: "pending"
+    status: "completed"
 
   - story_id: "e02s09"
     title: "Graceful degradation (server unavailable, errors, empty response)"
@@ -87,7 +87,8 @@ stories:
     status: "pending"
 
 # Total BCPs: 39
-# Estimated duration: ~5-7 days (1 story ~0.5-1 day avg)
+# Completed BCPs: 16 (e02s01, e02s02, e02s03, e02s08)
+# Remaining BCPs: 23
 
 # Dependencies: none (standalone epic, builds on existing custom_ai foundation)
 # Risks: blink.cmp API stability, LSP context gathering performance, llama.cpp completion endpoint compatibility

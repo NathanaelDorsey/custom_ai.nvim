@@ -4,7 +4,7 @@
 
 story_id: "e02s03"
 title: "Automatic project context gathering (LSP + treesitter)"
-status: "failing"
+status: "passing"
 bcps: 8
 delta: "ADDED"
 risk: "P0"
@@ -14,7 +14,7 @@ tasks:
     description: "Create lua/custom_ai/context.lua with gather_context(bufnr, cursor_pos) entry point returning structured table"
     verify: "test -f lua/custom_ai/context.lua && grep -q 'gather_context' lua/custom_ai/context.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -25,7 +25,7 @@ tasks:
     description: "LSP: workspace/symbol request for symbols in current namespace/package (with timeout)"
     verify: "grep -q 'workspace/symbol' lua/custom_ai/context.lua && grep -q 'timeout' lua/custom_ai/context.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -36,7 +36,7 @@ tasks:
     description: "LSP: textDocument/references for symbol under cursor (if any)"
     verify: "grep -q 'textDocument/references' lua/custom_ai/context.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -46,7 +46,7 @@ tasks:
     description: "LSP: textDocument/definition for symbol under cursor"
     verify: "grep -q 'textDocument/definition' lua/custom_ai/context.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -56,7 +56,7 @@ tasks:
     description: "LSP: textDocument/documentSymbol for current buffer to extract imports/type defs"
     verify: "grep -q 'documentSymbol' lua/custom_ai/context.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -66,7 +66,7 @@ tasks:
     description: "Treesitter: get parser for buffer, run queries for local functions, types, imports near cursor"
     verify: "grep -q 'vim.treesitter' lua/custom_ai/context.lua && grep -q 'query' lua/custom_ai/context.lua && grep -q 'get_parser' lua/custom_ai/context.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -77,7 +77,7 @@ tasks:
     description: "Find test files: check same directory for *_test.*, test_*.*, spec_*.* and test/ directory"
     verify: "grep -q 'test' lua/custom_ai/context.lua && grep -q 'spec' lua/custom_ai/context.lua && grep -q 'test/' lua/custom_ai/context.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -87,7 +87,7 @@ tasks:
     description: "Assemble context: deduplicate, rank by relevance, truncate to config.context.max_tokens"
     verify: "grep -q 'imports\\|types\\|related_fns\\|tests' lua/custom_ai/context.lua && grep -q 'max_tokens' lua/custom_ai/context.lua && grep -q 'truncate\\|sub' lua/custom_ai/context.lua"
     risk: "P0"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "critical"
       categories:
@@ -97,7 +97,7 @@ tasks:
     description: "Add context config to init.lua defaults: max_tokens, include_imports, include_types, include_tests, max_related_files"
     verify: "grep -q 'context' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'include_imports' lua/custom_ai/init.lua && grep -q 'max_related_files' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
