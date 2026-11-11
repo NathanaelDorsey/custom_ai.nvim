@@ -87,16 +87,21 @@ local defaults = {
 
   -- Keymaps (all use <leader>a prefix by default)
   keymaps = {
-    send_msg    = "<leader>as",   -- Send message (text only)
-    vision_msg  = "<leader>av",   -- Send message + image (vision models)
-    new_chat    = "<leader>an",   -- New chat (clear history)
-    toggle_chat = "<leader>.",    -- Toggle chat window show/hide
-    run_tests   = "<leader>at",   -- Run tests -> AI analysis
-    edit_code   = "<leader>ae",   -- Edit code in place (whole file)
-    ask_file    = "<leader>af",   -- Ask AI about current file
-    edit_sel    = "<leader>ah",   -- AI edit highlighted selection
-    show_scripts= "<leader>ai",   -- Show startup scripts reminder
+    send_msg      = "<leader>as",   -- Send message (text only)
+    vision_msg    = "<leader>av",   -- Send message + image (vision models)
+    new_chat      = "<leader>an",   -- New chat (clear history)
+    toggle_chat   = "<leader>.",    -- Toggle chat window show/hide
+    run_tests     = "<leader>at",   -- Run tests -> AI analysis
+    edit_code     = "<leader>ae",   -- Edit code in place (whole file)
+    ask_file      = "<leader>af",   -- Ask AI about current file
+    edit_sel      = "<leader>ah",   -- AI edit highlighted selection
+    show_scripts  = "<leader>ai",   -- Show startup scripts reminder
+    switch_model  = "<leader>am",   -- Switch AI model
+    refresh_model = "<leader>ar",   -- Refresh model detection
   },
+
+  -- Keymap scope: true = global (work anywhere), false = buffer-local (chat window only)
+  global_keymaps = true,
 }
 
 -- ---------------------------------------------------------------------------
@@ -131,6 +136,36 @@ function M.setup(opts)
   end
 
   state.current_model_key = config.default_model
+
+  -- Always set up keymaps that work from anywhere (model mgmt, file ops, tests)
+  M.setup_global_keymaps()
+
+  -- Set up chat-window keymaps as global or buffer-local based on config
+  if config.global_keymaps ~= false then
+    M.setup_chat_keymaps_global()
+  end
+end
+
+-- Set up keymaps that work from any buffer (model mgmt, file ops, tests)
+function M.setup_global_keymaps()
+  local km = config.keymaps
+
+  vim.keymap.set("n", km.switch_model, M.switch_model, { desc = "Switch AI model" })
+  vim.keymap.set("n", km.refresh_model, M.refresh_model, { desc = "Refresh model detection" })
+  vim.keymap.set("n", km.ask_file, M.ask_file, { desc = "Ask AI about current file" })
+  vim.keymap.set("n", km.run_tests, M.run_tests, { desc = "Run tests -> AI analysis" })
+  vim.keymap.set("n", km.edit_code, M.edit_code, { desc = "Edit whole file with AI" })
+  vim.keymap.set("n", km.edit_sel, M.edit_selection, { desc = "AI edit highlighted selection" })
+  vim.keymap.set("n", km.show_scripts, M.show_scripts, { desc = "Show AI startup scripts" })
+end
+
+-- Set up chat-window keymaps as global (when global_keymaps=true)
+function M.setup_chat_keymaps_global()
+  local km = config.keymaps
+
+  vim.keymap.set("n", km.toggle_chat, M.chat, { desc = "Toggle AI chat window" })
+  vim.keymap.set("n", km.new_chat, M.new_chat, { desc = "New AI chat (clear history)" })
+  -- send_msg and vision_msg are context-dependent; defined in setup_keymaps for chat buffer
 end
 
 -- ---------------------------------------------------------------------------
@@ -771,9 +806,19 @@ end
 
 local function setup_keymaps(buf, win, messages, detected_vision)
   local km = config.keymaps
+  local is_global = config.global_keymaps
 
-  -- Send message (text only)
-  vim.keymap.set("n", km.send_msg, function()
+  -- Helper to set keymap with correct scope
+  local function set_keymap(mode, lhs, rhs, opts)
+    local keymap_opts = opts or {}
+    if not is_global then
+      keymap_opts.buffer = buf
+    end
+    vim.keymap.set(mode, lhs, rhs, keymap_opts)
+  end
+
+  -- Send message (text only) - chat-context dependent
+  set_keymap("n", km.send_msg, function()
     vim.ui.input({ prompt = "You: " }, function(user_input)
       if not user_input or user_input == "" then return end
 
@@ -785,12 +830,12 @@ local function setup_keymaps(buf, win, messages, detected_vision)
         vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
       end, messages)
     end)
-  end, { buffer = buf })
+  end)
 
   -- Send message with image (for vision models like LLaVA-NeXT)
   -- Bound only when the running model supports vision; otherwise shows a warning
   if detected_vision then
-    vim.keymap.set("n", km.vision_msg, function()
+    set_keymap("n", km.vision_msg, function()
       vim.ui.input({ prompt = "You: " }, function(user_input)
         if not user_input or user_input == "" then return end
 
@@ -827,88 +872,91 @@ local function setup_keymaps(buf, win, messages, detected_vision)
           end, messages)
         end)
       end)
-    end, { buffer = buf })
+    end)
   else
-    vim.keymap.set("n", km.vision_msg, function()
+    set_keymap("n", km.vision_msg, function()
       vim.notify("Vision not supported by current model. Switch to a vision-capable model (e.g., LLaVA) to use image upload.", vim.log.levels.WARN)
-    end, { buffer = buf })
+    end)
   end
 
-  -- New chat
-  vim.keymap.set("n", km.new_chat, function()
-    if win and vim.api.nvim_win_is_valid(win) then
-      pcall(vim.api.nvim_win_close, win, true)
-    end
-    if buf and vim.api.nvim_buf_is_valid(buf) then
-      pcall(vim.api.nvim_buf_delete, buf, { force = true })
-    end
+  -- When global_keymaps=false, these need to be buffer-local in chat window
+  if not is_global then
+    -- New chat
+    set_keymap("n", km.new_chat, function()
+      if win and vim.api.nvim_win_is_valid(win) then
+        pcall(vim.api.nvim_win_close, win, true)
+      end
+      if buf and vim.api.nvim_buf_is_valid(buf) then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
 
-    local new_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(new_buf, "AI Chat")
-    local detected_vision = state.detected_vision
-    vim.api.nvim_buf_set_lines(new_buf, 0, -1, false, {
-      "=== AI Chat (llama.cpp) ===",
-      "Server: " .. api_url(),
-      "Model: " .. tostring(config.default_model),
-      "Vision: " .. (detected_vision and "enabled" or "disabled"),
-      "Press '" .. km.send_msg .. "' to send a message",
-      "Press '<leader>av' to send a message + image (vision)",
-      "Press '" .. km.edit_code .. "' to edit code in place",
-      "Press '" .. km.ask_file .. "' to ask about this file",
-      "Press '" .. km.new_chat .. "' to start a NEW chat",
-      "Press '" .. km.toggle_chat .. "' to toggle hide/show",
-      "",
-    })
+      local new_buf = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_name(new_buf, "AI Chat")
+      local detected_vision = state.detected_vision
+      vim.api.nvim_buf_set_lines(new_buf, 0, -1, false, {
+        "=== AI Chat (llama.cpp) ===",
+        "Server: " .. api_url(),
+        "Model: " .. tostring(config.default_model),
+        "Vision: " .. (detected_vision and "enabled" or "disabled"),
+        "Press '" .. km.send_msg .. "' to send a message",
+        "Press '<leader>av' to send a message + image (vision)",
+        "Press '" .. km.edit_code .. "' to edit code in place",
+        "Press '" .. km.ask_file .. "' to ask about this file",
+        "Press '" .. km.new_chat .. "' to start a NEW chat",
+        "Press '" .. km.toggle_chat .. "' to toggle hide/show",
+        "",
+      })
 
-    local new_win = vim.api.nvim_open_win(new_buf, true, {
-      relative = "editor",
-      width = math.floor(vim.o.columns * 0.4),
-      height = math.floor(vim.o.lines * 0.8),
-      row = math.floor(vim.o.lines * 0.1),
-      col = math.floor(vim.o.columns * 0.55),
-      style = "minimal",
-      border = "rounded",
-    })
+      local new_win = vim.api.nvim_open_win(new_buf, true, {
+        relative = "editor",
+        width = math.floor(vim.o.columns * 0.4),
+        height = math.floor(vim.o.lines * 0.8),
+        row = math.floor(vim.o.lines * 0.1),
+        col = math.floor(vim.o.columns * 0.55),
+        style = "minimal",
+        border = "rounded",
+      })
 
-    state.messages = {}
-    setup_keymaps(new_buf, new_win, state.messages, detected_vision)
+      state.messages = {}
+      setup_keymaps(new_buf, new_win, state.messages, detected_vision)
 
-    vim.api.nvim_set_option_value("modifiable", false, { buf = new_buf })
-    vim.api.nvim_set_option_value("readonly", true, { buf = new_buf })
+      vim.api.nvim_set_option_value("modifiable", false, { buf = new_buf })
+      vim.api.nvim_set_option_value("readonly", true, { buf = new_buf })
 
-    state.buf = new_buf
-    state.win = new_win
-  end, { buffer = buf })
+      state.buf = new_buf
+      state.win = new_win
+    end)
 
-  -- Toggle hide/show
-  vim.keymap.set("n", km.toggle_chat, function()
-    if win and vim.api.nvim_win_is_valid(win) then
-      pcall(vim.api.nvim_win_close, win, true)
-    end
-    if state.win == win then
-      state.win = nil
-    end
-  end, { buffer = buf })
+    -- Toggle hide/show
+    set_keymap("n", km.toggle_chat, function()
+      if win and vim.api.nvim_win_is_valid(win) then
+        pcall(vim.api.nvim_win_close, win, true)
+      end
+      if state.win == win then
+        state.win = nil
+      end
+    end)
 
-  -- Run tests
-  vim.keymap.set("n", km.run_tests, function()
-    M.run_tests()
-  end, { buffer = buf })
+    -- Run tests (buffer-local when global_keymaps=false)
+    set_keymap("n", km.run_tests, function()
+      M.run_tests()
+    end)
 
-  -- Edit code in place
-  vim.keymap.set("n", km.edit_code, function()
-    M.edit_code()
-  end, { buffer = buf })
+    -- Edit code in place
+    set_keymap("n", km.edit_code, function()
+      M.edit_code()
+    end)
 
-  -- Edit highlighted/visual selection with AI
-  vim.keymap.set("n", km.edit_sel, function()
-    M.edit_selection()
-  end, { buffer = buf, desc = "AI edit selection" })
+    -- Edit highlighted/visual selection with AI
+    set_keymap("n", km.edit_sel, function()
+      M.edit_selection()
+    end)
 
-  -- Show startup scripts
-  vim.keymap.set("n", km.show_scripts, function()
-    M.show_scripts()
-  end, { buffer = buf, desc = "Show AI startup scripts" })
+    -- Show startup scripts
+    set_keymap("n", km.show_scripts, function()
+      M.show_scripts()
+    end)
+  end
 end
 
 -- ---------------------------------------------------------------------------
