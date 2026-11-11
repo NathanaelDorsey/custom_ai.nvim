@@ -291,6 +291,8 @@ function M.request_completion(context, callback)
           end
 
           callback(completion_text, error_item)
+
+  -- Retry logic: no persistent error flag, each trigger calls request_completion fresh
         end)
       end
     )

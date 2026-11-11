@@ -108,6 +108,7 @@ local defaults = {
     show_scripts       = "<leader>ai",   -- Show startup scripts reminder
     switch_model       = "<leader>am",   -- Switch AI model
     refresh_model      = "<leader>ar",   -- Refresh model detection
+    toggle_completion  = "<leader>ac",   -- Toggle AI completion on/off
     completion_trigger = "<C-space>",   -- Manual AI completion trigger (insert mode)
   },
 
@@ -168,6 +169,7 @@ local state = {
   detected_vision = false,
   server_pid = nil,
   current_model_key = nil,
+  completion_enabled = true,
 }
 
 local config = {}
@@ -255,6 +257,13 @@ function M.setup_global_keymaps()
   vim.keymap.set("n", km.edit_code, M.edit_code, { desc = "Edit whole file with AI" })
   vim.keymap.set("n", km.edit_sel, M.edit_selection, { desc = "AI edit highlighted selection" })
   vim.keymap.set("n", km.show_scripts, M.show_scripts, { desc = "Show AI startup scripts" })
+
+  -- Completion toggle keymap
+  if km.toggle_completion then
+    vim.keymap.set("n", km.toggle_completion, function()
+      M.toggle_completion()
+    end, { desc = "Toggle AI completion" })
+  end
 end
 
 -- Set up chat-window keymaps as global (when global_keymaps=true)
@@ -1527,4 +1536,22 @@ end
 -- Export detect_running_model for external access
 M.detect_running_model = detect_running_model
 
+
+-- Toggle AI completion on/off
+function M.toggle_completion()
+  state.completion_enabled = not state.completion_enabled
+  vim.notify("AI Completion: " .. (state.completion_enabled and "enabled" or "disabled"), vim.log.levels.INFO)
+  -- Re-register blink.cmp source to reflect the change
+  local ok, blink = pcall(require, "blink.cmp")
+  if ok and blink.config and blink.config.sources then
+    local providers = blink.config.sources.providers or {}
+    if providers.custom_ai then
+      providers.custom_ai.opts = providers.custom_ai.opts or {}
+      providers.custom_ai.opts.enabled = function() return state.completion_enabled end
+    end
+  end
+end
+
+-- User command to toggle completion
+vim.api.nvim_create_user_command("AICompletionToggle", M.toggle_completion, { desc = "Toggle AI completion on/off" })
 return M

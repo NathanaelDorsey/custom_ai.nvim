@@ -65,8 +65,8 @@ tasks:
         - "Prompt Engineering"
 
   - id: "e02s01.6"
-    description: "Parse llama.cpp /v1/completions response: extract choices[0].text, take text before first \n, trim"
-    verify: "grep -q 'choices\\[0\\]\\.text' lua/custom_ai/completion.lua && grep -q '\\\\n' lua/custom_ai/completion.lua"
+    description: "Parse llama.cpp /v1/completions response: extract choices[1].text, take text before first \n, trim"
+    verify: "grep -q 'choices\\[1\\]\\.text' lua/custom_ai/completion.lua && grep -q '\\\\n' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
     allure:
@@ -87,7 +87,7 @@ tasks:
         - "blink.cmp"
 
   - id: "e02s01.8"
-    description: "Add completion config defaults to init.lua: completion = { enabled = true, keymap = '<C-space>', trigger_chars = {} } and model_config[*].completion"
+    description: "Add completion config defaults to init.lua: completion = { enabled = true, keymap = '<C-space>', trigger_chars = {}, max_items = 5 } and model_config[*].completion with max_lines"
     verify: "grep -q 'completion = {' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'enabled' lua/custom_ai/init.lua"
     risk: "P2"
     status: "passing"

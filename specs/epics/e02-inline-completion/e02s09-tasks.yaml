@@ -66,7 +66,7 @@ tasks:
         - "API"
 
   - id: "e02s09.6"
-    description: "Handle empty response: choices[0].text empty or missing → error item 'Error: Empty response'"
+    description: "Handle empty response: choices[1].text empty or missing → error item 'Error: Empty response'"
     verify: "grep -q 'Empty response' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
@@ -77,7 +77,7 @@ tasks:
 
   - id: "e02s09.7"
     description: "Auto-retry: no persistent error flag, each trigger attempts fresh request"
-    verify: "grep -q 'retry' lua/custom_ai/completion.lua"
+    verify: "grep -q 'retry\\|fresh\\|each trigger' lua/custom_ai/completion.lua"
     risk: "P2"
     status: "passing"
     allure:

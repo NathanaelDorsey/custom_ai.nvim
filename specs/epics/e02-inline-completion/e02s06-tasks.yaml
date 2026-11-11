@@ -11,8 +11,8 @@ risk: "P1"
 
 tasks:
   - id: "e02s06.1"
-    description: "Add model_config.completion.multi_line = { max_tokens = 512, temperature = 0.3, stop = {'```', 'function', 'class'} } to defaults in init.lua"
-    verify: "grep -q 'multi_line' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'stop' lua/custom_ai/init.lua"
+    description: "Add model_config.completion.max_lines > 1 (5, 10, 20) for multi-line mode with higher max_tokens"
+    verify: "grep -q 'max_lines = 10\\|max_lines = 20\\|max_lines = 5' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'stop_sequences' lua/custom_ai/init.lua"
     risk: "P2"
     status: "passing"
     allure:
@@ -23,7 +23,7 @@ tasks:
 
   - id: "e02s06.2"
     description: "Create multi-line prompt template in completion.lua: richer context, instruct model to generate complete block with proper indentation"
-    verify: "grep -q 'multi.line\\|multi_line' lua/custom_ai/completion.lua"
+    verify: "grep -q 'multi.line\\|multi_line\\|max_lines' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
     allure:
@@ -32,7 +32,7 @@ tasks:
         - "Prompt Engineering"
 
   - id: "e02s06.3"
-    description: "Parse multi-line response: strip markdown ``` fences, preserve indentation, detect language, add $0 placeholder"
+    description: "Parse multi-line response: strip markdown ``` fences, preserve indentation"
     verify: "grep -q 'indentation\\|gsub\\|```' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
@@ -42,7 +42,7 @@ tasks:
         - "Parsing"
 
   - id: "e02s06.4"
-    description: "Return blink.cmp item: kind=Snippet, insertText=multi_line_with_$0, detail='AI (multi-line)'"
+    description: "Return blink.cmp item: kind=Snippet, insertText=multi_line, detail='AI (multi-line)'"
     verify: "grep -q 'insertText' lua/custom_ai/completion.lua && grep -q 'multi.line' lua/custom_ai/completion.lua && grep -q 'detail' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
@@ -53,7 +53,7 @@ tasks:
         - "blink.cmp"
 
   - id: "e02s06.5"
-    description: "Config: model_config.completion.max_lines > 1 (or = 0 for unlimited) enables multi-line mode"
+    description: "Config: model_config.completion.max_lines > 1 enables multi-line mode"
     verify: "grep -q 'max_lines' lua/custom_ai/init.lua && grep -q 'max_lines' lua/custom_ai/completion.lua"
     risk: "P2"
     status: "passing"

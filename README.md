@@ -16,6 +16,7 @@ Designed for single-GPU setups (e.g. 8GB VRAM) where you run one model at a time
 | **File-aware asking** | Send current file content + question to AI |
 | **Code editing** | Edit whole file or highlighted selection with full-file context |
 | **Test analysis** | Run tests, truncate output, send to AI for analysis |
+| **Inline completion** | AI code completions via blink.cmp with project context |
 | **Configurable** | Models, scripts, keymaps, server URL all configurable via `setup()` |
 
 ## Installation
@@ -137,45 +138,145 @@ require("custom_ai").setup({
 })
 ```
 
-## Keymaps (default)
+## Completion (Inline AI Code Completion)
 
-All AI keymaps use `<leader>a` as a prefix (except toggle which uses `<leader>.`). By default (`global_keymaps = true`), **all keymaps work globally** (from any buffer). Set `global_keymaps = false` to restrict chat-specific keymaps (`send_msg`, `vision_msg`, `new_chat`, `toggle_chat`) to the chat window only.
+The plugin integrates with **blink.cmp** to provide inline AI-powered code completions.
 
-| Key | Action | Scope |
-|-----|--------|-------|
-| `<leader>.` | Toggle AI chat window | Global* |
-| `<leader>am` | Switch AI model | Global |
-| `<leader>ar` | Refresh model detection | Global |
-| `<leader>af` | Ask AI about current file | Global |
-| `<leader>ae` | Edit whole file with AI | Global |
-| `<leader>ah` | AI edit highlighted/visual selection | Global |
-| `<leader>at` | Run tests → AI analysis | Global |
-| `<leader>ai` | Show startup scripts reminder | Global |
-| `<leader>as` | Send message (text only) | Chat window* |
-| `<leader>av` | Send message + image (vision models) | Chat window* |
-| `<leader>an` | New chat (clear history) | Chat window* |
+### Setup
 
-*With `global_keymaps = true` (default): `toggle_chat`, `new_chat` also work globally. With `global_keymaps = false`: `send_msg`, `vision_msg`, `new_chat`, `toggle_chat` are buffer-local to the chat window only. The other keymaps (`switch_model`, `refresh_model`, `ask_file`, `run_tests`, `edit_code`, `edit_sel`, `show_scripts`) are always global regardless of this setting.
+Requires [blink.cmp](https://github.com/Saghen/blink.cmp) to be installed and configured:
 
-**Lua functions** (call via `:lua require("custom_ai").function_name()`):
+```lua
+-- In your lazy.nvim spec for blink.cmp
+{
+  "saghen/blink.cmp",
+  dependencies = { "your-username/custom_ai.nvim" },
+  opts = {
+    sources = {
+      default = { "lsp", "path", "snippets", "buffer", "custom_ai" },
+      providers = {
+        custom_ai = {
+          name = "custom_ai",
+          module = "custom_ai.completion",
+          opts = {
+            enabled = function()
+              return require("custom_ai").config.completion.enabled
+            end,
+          },
+        },
+      },
+    },
+  },
+}
+```
 
-| Function | Action |
-|----------|--------|
-| `switch_model()` | Switch model (kills old server, starts new one) |
-| `refresh_model()` | Re-query server for current model |
-| `chat()` | Toggle chat window |
-| `ask_file()` | Ask AI about current file |
-| `edit_code()` | Edit whole file with AI |
-| `edit_selection()` | AI edit highlighted selection |
-| `run_tests()` | Run tests → AI analysis |
-| `show_scripts()` | Show startup scripts reminder |
-| `new_chat()` | Clear chat history |
+**Note:** The plugin automatically registers itself as a blink.cmp source when `setup()` is called. You only need to add `"custom_ai"` to your `sources.default` list.
 
-**Commands** (available regardless of `global_keymaps` setting):
+### Configuration
+
+```lua
+require("custom_ai").setup({
+  -- ... other config
+
+  -- Completion settings
+  completion = {
+    enabled = true,           -- Enable/disable AI completions
+    keymap = "<C-space>",    -- Insert-mode trigger key
+    trigger_chars = {},       -- Characters that trigger completion (empty = manual only)
+    max_items = 5,            -- Max completion items to show
+    timeout_ms = 5000,        -- Request timeout in ms
+
+    -- Filetype-specific overrides (merged on top of model_config.completion)
+    filetypes = {
+      lua = { max_lines = 10, temperature = 0.1, top_p = 0.95 },
+      python = { max_lines = 5, temperature = 0.1, top_p = 0.9 },
+      javascript = { max_lines = 8, temperature = 0.2 },
+      typescript = { max_lines = 8, temperature = 0.2 },
+      go = { max_lines = 10, temperature = 0.15 },
+      rust = { max_lines = 15, temperature = 0.15 },
+      c = { max_lines = 5, temperature = 0.1 },
+      cpp = { max_lines = 5, temperature = 0.1 },
+      java = { max_lines = 8, temperature = 0.15 },
+      html = { max_lines = 3, temperature = 0.2 },
+      css = { max_lines = 3, temperature = 0.2 },
+      json = { max_lines = 1, temperature = 0.05 },
+      yaml = { max_lines = 3, temperature = 0.1 },
+      markdown = { max_lines = 3, temperature = 0.3 },
+    },
+  },
+
+  -- Per-model completion parameters (merged with filetype overrides)
+  model_config = {
+    allrounder = { temperature = 0.7, top_p = 0.8, max_tokens = 4096,
+      completion = { max_lines = 1, temperature = 0.2, max_tokens = 64, stop_sequences = { "\n" } } },
+    coder      = { temperature = 0.3, top_p = 0.9, max_tokens = 8192,
+      completion = { max_lines = 10, temperature = 0.2, max_tokens = 256, stop_sequences = { "\n" } } },
+    specialist = { temperature = 0.2, top_p = 0.95, max_tokens = 8192,
+      completion = { max_lines = 20, temperature = 0.2, max_tokens = 512, stop_sequences = { "\n" } } },
+    efficient  = { temperature = 0.5, top_p = 0.9, max_tokens = 2048,
+      completion = { max_lines = 5, temperature = 0.2, max_tokens = 128, stop_sequences = { "\n" } } },
+    vision     = { temperature = 0.4, top_p = 0.9, max_tokens = 4096,
+      completion = { max_lines = 1, temperature = 0.3, max_tokens = 64, stop_sequences = { "\n" } } },
+  },
+
+  -- Keymaps
+  keymaps = {
+    -- ... other keymaps
+    completion_trigger = "<C-space>",  -- Trigger AI completion (insert mode)
+    toggle_completion  = "<leader>ac", -- Toggle AI completion on/off
+  },
+})
+```
+
+### Usage
+
+1. **Trigger completion**: In insert mode, press `<C-space>` (or your configured `keymaps.completion_trigger`)
+2. **Navigate**: Use `<C-n>` / `<C-p>` or arrow keys to select
+3. **Accept**: Press `<CR>` or `<Tab>` to insert
+4. **Toggle on/off**: Press `<leader>ac` or run `:AICompletionToggle`
+
+### Completion Types
+
+| Model | max_lines | Behavior |
+|-------|-----------|----------|
+| allrounder | 1 | Single-line only |
+| coder | 10 | Multi-line (functions, blocks) |
+| specialist | 20 | Multi-line (large blocks) |
+| efficient | 5 | Multi-line (small blocks) |
+| vision | 1 | Single-line only |
+
+### Project Context
+
+Completions automatically gather project context via LSP and Treesitter:
+- **Imports** from other files in the project
+- **Type definitions** (classes, interfaces, types)
+- **Related functions** referenced near cursor
+- **Test files** for the current file
+
+Context is assembled and truncated to fit within `context.max_tokens` (default 2000 tokens).
+
+### Graceful Degradation
+
+- **Server unavailable**: Shows "Error: Server unavailable" in completion menu
+- **Timeout**: Shows "Error: Request timeout" after 5s (configurable)
+- **Parse errors**: Shows "Error: Parse failed"
+- **Empty response**: Shows "Error: Empty response"
+- **Auto-retry**: Each trigger attempts a fresh request
+
+### Commands
 
 | Command | Action |
 |---------|--------|
-| `:AIChat` | Open/toggle AI chat window |
+| `:AICompletionToggle` | Toggle AI completion on/off |
+
+### Keymaps
+
+| Key | Action | Mode |
+|-----|--------|------|
+| `<C-space>` | Trigger AI completion | Insert |
+| `<leader>ac` | Toggle AI completion | Normal |
+
+---
 
 ## Workflow
 

@@ -4,7 +4,7 @@
 
 story_id: "e02s08"
 title: "Global on/off toggle (command + keymap)"
-status: "failing"
+status: "passing"
 bcps: 2
 delta: "ADDED"
 risk: "P2"
@@ -12,9 +12,9 @@ risk: "P2"
 tasks:
   - id: "e02s08.1"
     description: "Add state.completion_enabled = true to module state in init.lua"
-    verify: "grep -q 'completion_enabled' lua/custom_ai/init.lua"
+    verify: "grep -q 'completion_enabled = true' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -24,7 +24,7 @@ tasks:
     description: "Implement M.toggle_completion() — flips state, re-registers/unregisters blink.cmp source dynamically"
     verify: "grep -q 'toggle_completion' lua/custom_ai/init.lua && grep -q 'blink.cmp' lua/custom_ai/init.lua && grep -q 'completion_enabled' lua/custom_ai/init.lua"
     risk: "P1"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "high"
       categories:
@@ -35,17 +35,17 @@ tasks:
     description: "Add :AICompletionToggle user command in setup()"
     verify: "grep -q 'AICompletionToggle' lua/custom_ai/init.lua && grep -q 'user_command' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
         - "Command"
 
   - id: "e02s08.4"
-    description: "Add keymap <leader>ac in setup_global_keymaps() (configurable via config.keymaps.toggle_completion)"
+    description: "Add keymap <leader>ac in defaults (config.keymaps.toggle_completion = '<leader>ac')"
     verify: "grep -q 'toggle_completion' lua/custom_ai/init.lua && grep -q '<leader>ac' lua/custom_ai/init.lua"
     risk: "P2"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "normal"
       categories:
@@ -56,7 +56,7 @@ tasks:
     description: "Show notification on toggle: 'AI Completion: enabled/disabled'"
     verify: "grep -q 'notify' lua/custom_ai/init.lua && grep -q 'Completion' lua/custom_ai/init.lua"
     risk: "P3"
-    status: "failing"
+    status: "passing"
     allure:
       severity: "minor"
       categories:

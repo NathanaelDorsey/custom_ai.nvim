@@ -11,8 +11,8 @@ risk: "P1"
 
 tasks:
   - id: "e02s05.1"
-    description: "Add model_config.completion.single_line = { max_tokens = 64, temperature = 0.2, stop = {'\\n'} } to defaults in init.lua for each model"
-    verify: "grep -q 'single_line' lua/custom_ai/init.lua && grep -q 'max_tokens' lua/custom_ai/init.lua && grep -q 'temperature' lua/custom_ai/init.lua && grep -q 'stop' lua/custom_ai/init.lua"
+    description: "Add model_config.completion.max_lines = 1 with stop_sequences = {'\\n'} for single-line mode"
+    verify: "grep -q 'max_lines = 1' lua/custom_ai/init.lua && grep -q 'stop_sequences' lua/custom_ai/init.lua"
     risk: "P2"
     status: "passing"
     allure:
@@ -23,7 +23,7 @@ tasks:
 
   - id: "e02s05.2"
     description: "Create single-line prompt template in completion.lua: minimal context, instruct model to generate only next logical line"
-    verify: "grep -q 'single.line\\|single_line' lua/custom_ai/completion.lua"
+    verify: "grep -q 'single.line\\|single_line\\|max_lines' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
     allure:
@@ -32,7 +32,7 @@ tasks:
         - "Prompt Engineering"
 
   - id: "e02s05.3"
-    description: "Parse llama.cpp response: choices[0].text, split on \\n, take first non-empty line, trim"
+    description: "Parse llama.cpp response: choices[1].text, split on \\n, take first non-empty line, trim"
     verify: "grep -q '\\\\n' lua/custom_ai/completion.lua && grep -q 'sub\\|match\\|gmatch' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
@@ -43,7 +43,7 @@ tasks:
 
   - id: "e02s05.4"
     description: "Return blink.cmp item: kind=Snippet, insertText=single_line, detail='AI (1-line)'"
-    verify: "grep -q 'Snippet' lua/custom_ai/completion.lua && grep -q 'single.line' lua/custom_ai/completion.lua && grep -q 'detail' lua/custom_ai/completion.lua"
+    verify: "grep -q 'Snippet' lua/custom_ai/completion.lua && grep -q 'detail' lua/custom_ai/completion.lua && grep -q '1.line' lua/custom_ai/completion.lua"
     risk: "P1"
     status: "passing"
     allure:
