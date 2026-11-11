@@ -75,7 +75,7 @@ function M._get_document_symbols(client, bufnr, ctx, callback)
   local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
   client.request("textDocument/documentSymbol", params, function(err, result)
     if err or not result then
-      callback()
+      callback(ctx)
       return
     end
 
@@ -104,7 +104,7 @@ function M._get_document_symbols(client, bufnr, ctx, callback)
     end
 
     extract_symbols(result, "")
-    callback()
+    callback(ctx)
   end)
 end
 
@@ -135,7 +135,7 @@ function M._get_references(client, bufnr, cursor_pos, symbol, ctx, callback)
   }
   client.request("textDocument/references", params, function(err, result)
     if err or not result then
-      callback()
+      callback(ctx)
       return
     end
 
@@ -151,7 +151,7 @@ function M._get_references(client, bufnr, cursor_pos, symbol, ctx, callback)
         end
       end
     end
-    callback()
+    callback(ctx)
   end)
 end
 
@@ -163,7 +163,7 @@ function M._get_definitions(client, bufnr, cursor_pos, symbol, ctx, callback)
   }
   client.request("textDocument/definition", params, function(err, result)
     if err or not result then
-      callback()
+      callback(ctx)
       return
     end
 
@@ -177,7 +177,7 @@ function M._get_definitions(client, bufnr, cursor_pos, symbol, ctx, callback)
         end
       end
     end
-    callback()
+    callback(ctx)
   end)
 end
 
@@ -188,7 +188,7 @@ function M._get_workspace_symbols(client, ctx, callback)
   local params = { query = query }
   client.request("workspace/symbol", params, function(err, result)
     if err or not result then
-      callback()
+      callback(ctx)
       return
     end
 
@@ -199,7 +199,7 @@ function M._get_workspace_symbols(client, ctx, callback)
         table.insert(ctx.related_fns, sym.name)
       end
     end
-    callback()
+    callback(ctx)
   end, 2000)  -- 2 second timeout
 end
 
@@ -207,13 +207,13 @@ end
 function M._gather_treesitter_context(bufnr, cursor_pos, ctx, callback)
   local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
   if not ok or not parser then
-    callback()
+    callback(ctx)
     return
   end
 
   parser:parse(true, function(_, trees)
     if not trees or #trees == 0 then
-      callback()
+      callback(ctx)
       return
     end
 
@@ -224,7 +224,7 @@ function M._gather_treesitter_context(bufnr, cursor_pos, ctx, callback)
     -- Define queries for different languages
     local queries = M._get_treesitter_queries(lang)
     if not queries then
-      callback()
+      callback(ctx)
       return
     end
 
@@ -244,7 +244,7 @@ function M._gather_treesitter_context(bufnr, cursor_pos, ctx, callback)
       end
     end
 
-    callback()
+    callback(ctx)
   end)
 end
 
@@ -313,7 +313,7 @@ end
 function M._find_test_files(bufnr, ctx, callback)
   local filepath = vim.api.nvim_buf_get_name(bufnr)
   if filepath == "" then
-    callback()
+    callback(ctx)
     return
   end
 
@@ -343,7 +343,7 @@ function M._find_test_files(bufnr, ctx, callback)
     end
   end
 
-  callback()
+  callback(ctx)
 end
 
 -- Assemble and truncate context to token budget

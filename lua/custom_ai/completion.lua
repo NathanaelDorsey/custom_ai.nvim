@@ -44,12 +44,12 @@ local completion_queue = {
 }
 
 function M.set_refs(cfg, st)
+  local ctx_mod = require("custom_ai.context")
+  context_module = ctx_mod
   config_ref = cfg
   state_ref = st
-  context_module = require("custom_ai.context")
   context_module.set_config(cfg)
 end
-
 -- Pre-flight server check: quick HEAD/GET to /v1/models with 1s timeout
 -- Returns true if server is reachable, false otherwise
 local function preflight_check(callback)
