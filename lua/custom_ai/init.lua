@@ -1080,6 +1080,10 @@ function M.chat()
   -- Re-detect vision capability for the current model (SF-2a)
   detect_vision_capability(state.detected_model, function(has_vision)
     state.detected_vision = has_vision
+    -- Rebind keymaps for open chat window with updated vision state
+    if state.buf and vim.api.nvim_buf_is_valid(state.buf) and state.win and vim.api.nvim_win_is_valid(state.win) then
+      setup_keymaps(state.buf, state.win, state.messages, has_vision)
+    end
   end)
 
   if state.win and vim.api.nvim_win_is_valid(state.win) then
@@ -1525,7 +1529,7 @@ end
 function M.new_chat()
   state.messages = {}
   state.detected_model = nil
-  state.detected_vision = false
+  -- Keep state.detected_vision - vision detection runs async in M.chat()
   if state.win and vim.api.nvim_win_is_valid(state.win) then
     pcall(vim.api.nvim_win_close, state.win, true)
     state.win = nil
