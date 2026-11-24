@@ -15,145 +15,18 @@
 -- Usage:
 --   local custom_ai = require("custom_ai")
 --   custom_ai.setup({
---     server = { host = "127.0.0.1", port = 9931 },
---     models = { ... },
---     scripts = { ... },
---     keymaps = { ... },
+--     server = { host = "127.0.0.1", port = 9931, container = "cuda-dev" },
+--     -- models, scripts, model_config, keymaps, etc. can be overridden here
 --   })
 --   vim.keymap.set("n", "<leader>.", custom_ai.chat)
 
 local M = {}
 
 -- ---------------------------------------------------------------------------
--- Default configuration
+-- Configuration (modular, loaded from lua/custom_ai/config/)
 -- ---------------------------------------------------------------------------
 
-local defaults = {
-  -- Server connection
-  server = {
-    host = "127.0.0.1",
-    port = 9931,
-  },
-
-  -- Model definitions: key -> human-readable name
-  -- Used for auto-detection matching and display
-  models = {
-    allrounder = "Nemotron-Bolt-E4B Q5_K (allrounder: 65K, reasoning, tools)",
-    coder      = "Qwen3 8B Q4 (coder: 24K, reasoning, tools)",
-    specialist = "Qwen2.5-Coder 7B Q6_K Instruct (specialist: 32K native, best code)",
-    efficient  = "Qwen3.5 4B Q8 (efficient: 16K, reasoning, tools)",
-    vision     = "LLaVA-NeXT-8B Q6_K (vision: 4K, multimodal, OCR)",
-  },
-
-  -- Per-model generation parameters
-  model_config = {
-    allrounder = { temperature = 0.7, top_p = 0.8, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.2, top_p = 0.8, max_tokens = 64, stop_sequences = { "\n" }, prompt_template = nil } },
-    coder      = { temperature = 0.3, top_p = 0.9, max_tokens = 8192, completion = { max_lines = 10, temperature = 0.2, top_p = 0.9, max_tokens = 256, stop_sequences = { "\n" }, prompt_template = nil } },
-    specialist = { temperature = 0.2, top_p = 0.95, max_tokens = 8192, completion = { max_lines = 20, temperature = 0.2, top_p = 0.95, max_tokens = 512, stop_sequences = { "\n" }, prompt_template = nil } },
-    efficient  = { temperature = 0.5, top_p = 0.9, max_tokens = 2048, completion = { max_lines = 5, temperature = 0.2, top_p = 0.9, max_tokens = 128, stop_sequences = { "\n" }, prompt_template = nil } },
-    vision     = { temperature = 0.4, top_p = 0.9, max_tokens = 4096, completion = { max_lines = 1, temperature = 0.3, top_p = 0.9, max_tokens = 64, stop_sequences = { "\n" }, prompt_template = nil } },
-  },
-
-  -- Default model key (must exist in `models`)
-  default_model = "allrounder",
-
-  -- Global fallback generation parameters
-  temperature = 0.7,
-  max_tokens  = 4096,
-  top_p       = 0.8,
-
-  -- Vision detection: API probe on/off + filename-fallback keyword patterns
-  vision_probe = true,
-  vision_keywords = { "llava", "bakllava", "llava-next", "llava-1.5", "llava-1.6", "vision" },
-
-  -- Context gathering for completions (LSP + treesitter)
-  context = {
-    max_tokens = 2000,
-    include_imports = true,
-    include_types = true,
-    include_tests = true,
-    max_related_files = 3,
-  },
-
-  -- Startup scripts: key -> shell command (run in terminal to start llama-server)
-  scripts = {
-    allrounder = "./llm-allrounder.sh",
-    coder      = "./llm-coder.sh",
-    specialist = "./llm-specialist.sh",
-    efficient  = "./llm-efficient.sh",
-    vision     = "./llm-vision.sh",
-  },
-
-  -- Test commands for run_tests()
-  test_commands = {
-    python = "python3 %",
-    bash   = "bash %",
-    java   = "javac % && java ${1:r}",
-    node   = "node %",
-    go     = "go run %",
-    rust   = "rustc % && ./${1:r}",
-    pytest = "pytest",
-  },
-
-  -- Keymaps (all use <leader>a prefix by default)
-  keymaps = {
-    send_msg           = "<leader>as",   -- Send message (text only)
-    vision_msg         = "<leader>av",   -- Send message + image (vision models)
-    new_chat           = "<leader>an",   -- New chat (clear history)
-    toggle_chat        = "<leader>.",    -- Toggle chat window show/hide
-    run_tests          = "<leader>at",   -- Run tests -> AI analysis
-    edit_code          = "<leader>ae",   -- Edit code in place (whole file)
-    ask_file           = "<leader>af",   -- Ask AI about current file
-    edit_sel           = "<leader>ah",   -- AI edit highlighted selection
-    show_scripts       = "<leader>ai",   -- Show startup scripts reminder
-    switch_model       = "<leader>am",   -- Switch AI model
-    refresh_model      = "<leader>ar",   -- Refresh model detection
-    toggle_completion  = "<leader>ac",   -- Toggle AI completion on/off
-    completion_trigger = "<C-space>",   -- Manual AI completion trigger (insert mode)
-  },
-
-  -- Keymap scope: true = global (work anywhere), false = buffer-local (chat window only)
-  global_keymaps = true,
-
-  -- Completion configuration
-  completion = {
-    enabled = true,
-    keymap = "<C-space>",
-    trigger_chars = {},
-    max_items = 5,
-    -- Global defaults (used as base for deep merge)
-    temperature = 0.2,
-    top_p = 0.8,
-    max_tokens = 64,
-    stop_sequences = { "\n" },
-    max_lines = 1,
-    prompt_template = nil,
-    -- Filetype-specific overrides (merged on top of model_config.completion)
-    filetypes = {
-      lua = { max_lines = 10, temperature = 0.1, top_p = 0.95 },
-      python = { max_lines = 5, temperature = 0.1, top_p = 0.9 },
-      javascript = { max_lines = 8, temperature = 0.2 },
-      typescript = { max_lines = 8, temperature = 0.2 },
-      go = { max_lines = 10, temperature = 0.15 },
-      rust = { max_lines = 15, temperature = 0.15 },
-      c = { max_lines = 5, temperature = 0.1 },
-      cpp = { max_lines = 5, temperature = 0.1 },
-      java = { max_lines = 8, temperature = 0.15 },
-      html = { max_lines = 3, temperature = 0.2 },
-      css = { max_lines = 3, temperature = 0.2 },
-      json = { max_lines = 1, temperature = 0.05 },
-      yaml = { max_lines = 3, temperature = 0.1 },
-      markdown = { max_lines = 3, temperature = 0.3 },
-      sql = { max_lines = 5, temperature = 0.1 },
-      sh = { max_lines = 3, temperature = 0.1 },
-      bash = { max_lines = 3, temperature = 0.1 },
-      zsh = { max_lines = 3, temperature = 0.1 },
-      fish = { max_lines = 3, temperature = 0.1 },
-      dockerfile = { max_lines = 3, temperature = 0.1 },
-      toml = { max_lines = 3, temperature = 0.1 },
-    },
-  },
-}
+local config_loader = require("custom_ai.config")
 
 -- ---------------------------------------------------------------------------
 -- Module state
@@ -179,7 +52,8 @@ local config = {}
 -- ---------------------------------------------------------------------------
 
 function M.setup(opts)
-  config = vim.tbl_deep_extend("force", defaults, opts or {})
+  -- Merge user opts with modular defaults
+  config = config_loader.merge(opts or {})
 
   -- Validate default_model exists
   if config.models and config.default_model and not config.models[config.default_model] then
@@ -244,6 +118,7 @@ function M.setup(opts)
 
   -- Always create user command for opening chat (works regardless of global_keymaps)
   vim.api.nvim_create_user_command("AIChat", M.chat, { desc = "Open AI chat window" })
+  vim.api.nvim_create_user_command("AICompletionToggle", M.toggle_completion, { desc = "Toggle AI completion" })
 end
 
 -- Set up keymaps that work from any buffer (model mgmt, file ops, tests)
@@ -279,12 +154,36 @@ end
 -- Helpers
 -- ---------------------------------------------------------------------------
 
-local function api_url()
-  return string.format("http://%s:%d/v1/chat/completions", config.server.host, config.server.port)
+-- Get server host from config
+local function server_host()
+  return config.server and config.server.host or "127.0.0.1"
 end
 
+-- Get server port from config
+local function server_port()
+  return config.server and config.server.port or 9931
+end
+
+-- Get container name from config (nil/false = run on host)
+local function server_container()
+  return config.server and config.server.container
+end
+
+-- Build API URL
+local function api_url()
+  return string.format("http://%s:%d/v1/chat/completions", server_host(), server_port())
+end
+
+-- Build models URL
 local function models_url()
-  return string.format("http://%s:%d/v1/models", config.server.host, config.server.port)
+  return string.format("http://%s:%d/v1/models", server_host(), server_port())
+end
+
+-- Verbose logging helper
+local function log_info(msg)
+  if config.verbose then
+    vim.notify(msg, vim.log.levels.INFO)
+  end
 end
 
 -- Encode a local image file to a base64 data URL for vision models
@@ -311,14 +210,47 @@ local function image_to_data_url(image_path)
   return string.format("data:%s;base64,%s", mime, b64)
 end
 
--- Kill existing llama.cpp server
+-- Ensure container is running (for podman exec)
+local function ensure_container_running()
+  local container = server_container()
+  if not container then return true end
+
+  local result = vim.system({ "podman", "inspect", container, "--format", "{{.State.Status}}" }, { text = true }):wait()
+  if result.code == 0 and result.stdout and result.stdout:match("running") then
+    return true
+  end
+
+  log_info("custom_ai.nvim: Starting container " .. container .. "...")
+  local start_result = vim.system({ "podman", "start", container }, { text = true }):wait()
+  if start_result.code ~= 0 then
+    vim.notify("custom_ai.nvim: Failed to start container " .. container .. ": " .. (start_result.stderr or "unknown"), vim.log.levels.ERROR)
+    return false
+  end
+  log_info("custom_ai.nvim: Container " .. container .. " started")
+  return true
+end
+
+-- Kill existing llama.cpp server (container-aware)
 local function kill_server()
   if state.server_pid then
     vim.fn.jobstart({ "kill", "-9", tostring(state.server_pid) }, { detach = true })
     state.server_pid = nil
-    vim.notify("custom_ai.nvim: Stopped previous llama.cpp server", vim.log.levels.INFO)
+    log_info("custom_ai.nvim: Stopped previous llama.cpp server")
   end
-  vim.fn.jobstart({ "pkill", "-f", "llama serve" }, { detach = true })
+
+  local container = server_container()
+  if container then
+    -- Ensure container is running before trying to exec
+    if not ensure_container_running() then
+      return
+    end
+    -- Kill inside container where llama-server runs
+    vim.fn.jobstart({ "podman", "exec", container, "pkill", "-9", "-f", "llama-server" }, { detach = true })
+  else
+    -- Kill on host
+    vim.fn.jobstart({ "pkill", "-9", "-f", "llama-server" }, { detach = true })
+    vim.fn.jobstart({ "pkill", "-f", "llama serve" }, { detach = true })
+  end
 end
 
 -- Start llama.cpp server for a model key
@@ -330,45 +262,66 @@ local function start_server(model_key)
   end
 
   kill_server()
-  vim.notify("custom_ai.nvim: Starting server: " .. script, vim.log.levels.INFO)
 
-  local job_id = vim.fn.jobstart({ "bash", "-c", "cd ~ && " .. script .. " && sleep 2 && pgrep -f 'llama serve' | head -1" }, {
+  -- Ensure container is running before starting script (if using container)
+  if not ensure_container_running() then
+    return false
+  end
+
+  log_info("custom_ai.nvim: Starting server: " .. script)
+
+  -- Run script (user's script handles container vs host)
+  local job_id = vim.fn.jobstart({ "bash", "-c", "cd ~ && " .. script }, {
     on_stdout = function(_, data)
-      if data and data[1] and data[1] ~= "" then
-        local pid = tonumber(data[1])
-        if pid then
-          state.server_pid = pid
-          vim.notify("custom_ai.nvim: llama.cpp server started (PID: " .. pid .. ")", vim.log.levels.INFO)
+      if data then
+        for _, line in ipairs(data) do
+          if line and line ~= "" then
+            log_info("custom_ai.nvim: " .. line)
+          end
         end
       end
     end,
     on_stderr = function(_, data)
-      if data and data[1] and data[1] ~= "" then
-        vim.notify("custom_ai.nvim: Server stderr: " .. data[1], vim.log.levels.WARN)
+      if data then
+        for _, line in ipairs(data) do
+          if line and line ~= "" then
+            vim.notify("custom_ai.nvim: Server stderr: " .. line, vim.log.levels.WARN)
+          end
+        end
       end
     end,
     detach = false,
   })
 
+  -- Verify server is up via API
   vim.defer_fn(function()
     local verify_url = models_url()
     vim.system({ "curl", "-s", verify_url }, { text = true }, function(result)
       vim.schedule(function()
         if result.code == 0 and result.stdout and result.stdout:match("models") then
-          vim.notify("custom_ai.nvim: Server ready: " .. tostring(config.models[model_key]), vim.log.levels.INFO)
+          log_info("custom_ai.nvim: Server ready: " .. tostring(config.models[model_key]))
         else
           vim.notify("custom_ai.nvim: Server started but not responding yet", vim.log.levels.WARN)
         end
       end)
     end)
-  end, 3000)
+  end, 5000)  -- Increased wait time for model loading
 
   return true
 end
 
+-- Strip path and .gguf extension from a model id, returning the bare filename
+local function parse_model_filename(model_id)
+  if not model_id or model_id == "" then return nil end
+  local filename = model_id:match("([^/]+)%.gguf$") or model_id:match("([^/]+)$")
+  if not filename or filename == "" then return nil end
+  return filename:gsub("%.gguf$", "")
+end
+
 -- Detect running server and get model name
+-- Synchronous: uses vim.system(...):wait() which blocks until curl completes
 local function detect_running_model()
-  local result = vim.system({ "curl", "-s", "-m", "2", models_url() }, { text = true }):wait()
+  local result = vim.system({ "curl", "-s", "-m", "3", models_url() }, { text = true }):wait()
 
   if result.code == 0 and result.stdout and result.stdout ~= "" then
     local ok, data = pcall(vim.json.decode, result.stdout)
@@ -393,6 +346,10 @@ local function detect_running_model()
           matched = true
         elseif key == "efficient" and filename_lower:find("qwen3%.5") then
           matched = true
+        elseif key == "inkling_iq4" and filename_lower:find("inkling") and filename_lower:find("iq4") then
+          matched = true
+        elseif key == "coder_yarn" and filename_lower:find("qwen3") and filename_lower:find("8b") then
+          matched = true
         end
 
         -- Fallback: fuzzy name matching (filename in name only)
@@ -410,19 +367,15 @@ local function detect_running_model()
 
       state.detected_model = model_id
       return model_id, model_id, model_id
+    else
+      vim.notify("custom_ai.nvim: JSON decode failed: " .. tostring(result.stdout:sub(1, 200)), vim.log.levels.WARN)
     end
+  else
+    vim.notify("custom_ai.nvim: curl failed (code=" .. tostring(result.code) .. ", stderr=" .. tostring(result.stderr:sub(1, 200)) .. ")", vim.log.levels.WARN)
   end
 
   state.detected_model = nil
   return nil, "no model running", nil
-end
-
--- Strip path and .gguf extension from a model id, returning the bare filename
-local function parse_model_filename(model_id)
-  if not model_id or model_id == "" then return nil end
-  local filename = model_id:match("([^/]+)%.gguf$") or model_id:match("([^/]+)$")
-  if not filename or filename == "" then return nil end
-  return filename:gsub("%.gguf$", "")
 end
 
 -- Asynchronously fetch the running model id from GET /v1/models
@@ -567,41 +520,53 @@ end
 -- ---------------------------------------------------------------------------
 
 function M.check_server_on_startup()
-  local key, name, model_id = detect_running_model()
-  if key then
-    for k, v in pairs(config.models) do
-      if v == name or name:find(k) then
-        config.default_model = v
-        state.current_model_key = k
-        break
+  local function try_detect(attempt)
+    local key, name, model_id = detect_running_model()
+    if key then
+      for k, v in pairs(config.models) do
+        if v == name or name:find(k) then
+          config.default_model = v
+          state.current_model_key = k
+          break
+        end
+      end
+      if not config.default_model:find(name) then
+        config.default_model = name
+      end
+
+      -- Detect vision capability (API probe first, filename fallback)
+      detect_vision_capability(model_id, function(has_vision)
+        state.detected_vision = has_vision
+        log_info("custom_ai.nvim: Vision: " .. (has_vision and "enabled" or "disabled"))
+      end)
+
+      log_info("custom_ai.nvim: Server detected: " .. config.default_model)
+    else
+      if attempt < 5 then
+        log_info("custom_ai.nvim: Server not ready, retrying in 3s... (attempt " .. attempt .. "/5)")
+        vim.defer_fn(function()
+          try_detect(attempt + 1)
+        end, 3000)
+        return
+      else
+        config.default_model = "no model running"
+        local lines = {
+          "=== AI Server Not Running ===",
+          "No llama.cpp server detected on " .. config.server.host .. ":" .. config.server.port,
+          "",
+          "Start one of these scripts in a terminal:",
+        }
+        for key, script in pairs(config.scripts) do
+          table.insert(lines, "  " .. script .. "  # " .. key)
+        end
+        table.insert(lines, "")
+        table.insert(lines, "Vision: disabled")
+        vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Local AI" })
       end
     end
-    if not config.default_model:find(name) then
-      config.default_model = name
-    end
-
-    -- Detect vision capability (API probe first, filename fallback)
-    detect_vision_capability(model_id, function(has_vision)
-      state.detected_vision = has_vision
-      vim.notify("custom_ai.nvim: Vision: " .. (has_vision and "enabled" or "disabled"), vim.log.levels.INFO)
-    end)
-
-    vim.notify("custom_ai.nvim: Server detected: " .. config.default_model, vim.log.levels.INFO)
-  else
-    config.default_model = "no model running"
-    local lines = {
-      "=== AI Server Not Running ===",
-      "No llama.cpp server detected on " .. config.server.host .. ":" .. config.server.port,
-      "",
-      "Start one of these scripts in a terminal:",
-    }
-    for key, script in pairs(config.scripts) do
-      table.insert(lines, "  " .. script .. "  # " .. key)
-    end
-    table.insert(lines, "")
-    table.insert(lines, "Vision: disabled")
-    vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Local AI" })
   end
+
+  try_detect(1)
 end
 
 function M.refresh_model()
@@ -617,12 +582,18 @@ function M.refresh_model()
     if not config.default_model:find(name) then
       config.default_model = name
     end
-    vim.notify("custom_ai.nvim: Detected model: " .. config.default_model, vim.log.levels.INFO)
+    log_info("custom_ai.nvim: Detected model: " .. config.default_model)
   else
     config.default_model = "no model running"
     vim.notify("custom_ai.nvim: No llama.cpp server running on " .. config.server.host .. ":" .. config.server.port, vim.log.levels.WARN)
   end
   return config.default_model
+end
+
+-- Force re-detection of running server (useful if auto-detection missed it)
+function M.force_detect()
+  log_info("custom_ai.nvim: Force-detecting server...")
+  M.refresh_model()
 end
 
 -- Forward-declared so M.switch_model's deferred callback can reference it;
@@ -640,16 +611,16 @@ function M.switch_model()
   }, function(choice)
     if not choice then return end
 
-    local key = choice:match("^(%w+):")
+    local key = choice:match("^([%w_]+):")
     if key and config.models[key] then
       local old_model = config.default_model
       config.default_model = config.models[key]
       state.current_model_key = key
 
-      vim.notify("custom_ai.nvim: Switching model... restarting server", vim.log.levels.INFO)
+      log_info("custom_ai.nvim: Switching model... restarting server")
       start_server(key)
 
-      vim.notify("custom_ai.nvim: Model switched to: " .. config.default_model, vim.log.levels.INFO)
+      log_info("custom_ai.nvim: Model switched to: " .. config.default_model)
 
       if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
         M.write_to_buf(state.buf, state.win, {
@@ -663,26 +634,49 @@ function M.switch_model()
       end
 
       -- Re-detect vision capability once the new server is up
+      -- Wait longer for server to fully start (llama.cpp can take 8-10s for large models)
       vim.defer_fn(function()
+        log_info("custom_ai.nvim: Checking server status...")
         local fresh_key, fresh_name, fresh_model_id = detect_running_model()
         if fresh_key then
           state.detected_model = fresh_key
+          log_info("custom_ai.nvim: Detected: " .. fresh_name)
+        else
+          log_info("custom_ai.nvim: Server not ready, retrying in 5s...")
+          vim.defer_fn(function()
+            local retry_key, retry_name, retry_model_id = detect_running_model()
+            if retry_key then
+              state.detected_model = retry_key
+              log_info("custom_ai.nvim: Retry detected: " .. retry_name)
+              fresh_model_id = retry_model_id
+            else
+              log_info("custom_ai.nvim: Server still not responding")
+              fresh_model_id = nil
+            end
+            detect_vision_capability(fresh_model_id, function(has_vision)
+              state.detected_vision = has_vision
+              log_info("custom_ai.nvim: Vision: " .. (has_vision and "enabled" or "disabled"))
+              if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+                M.write_to_buf(state.buf, state.win, {"Vision: " .. (has_vision and "enabled" or "disabled")})
+              end
+              if state.buf and vim.api.nvim_buf_is_valid(state.buf) and state.win and vim.api.nvim_win_is_valid(state.win) then
+                setup_keymaps(state.buf, state.win, state.messages, state.detected_vision)
+              end
+            end)
+          end, 5000)
+          return
         end
         detect_vision_capability(fresh_model_id, function(has_vision)
           state.detected_vision = has_vision
-          vim.notify("custom_ai.nvim: Vision: " .. (has_vision and "enabled" or "disabled"), vim.log.levels.INFO)
-          -- Refresh chat header vision status (SF-1)
+          log_info("custom_ai.nvim: Vision: " .. (has_vision and "enabled" or "disabled"))
           if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
-            M.write_to_buf(state.buf, state.win, {
-              "Vision: " .. (has_vision and "enabled" or "disabled"),
-            })
+            M.write_to_buf(state.buf, state.win, {"Vision: " .. (has_vision and "enabled" or "disabled")})
           end
-          -- Rebind keymaps for open chat window
           if state.buf and vim.api.nvim_buf_is_valid(state.buf) and state.win and vim.api.nvim_win_is_valid(state.win) then
             setup_keymaps(state.buf, state.win, state.messages, state.detected_vision)
           end
         end)
-      end, 3000)
+      end, 8000)
     else
       vim.notify("custom_ai.nvim: Invalid selection", vim.log.levels.WARN)
     end
@@ -699,13 +693,13 @@ function M.show_scripts()
   if config.scripts.allrounder then
     table.insert(lines, "  cd ~ && " .. config.scripts.allrounder)
   end
-  vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+  log_info(table.concat(lines, "\n"))
 end
 
 -- Send a request to llama.cpp with full conversation history (non-blocking async, queued)
 -- prompt can be a string (text only) or a table of content parts (for vision: text + image_url)
 function M.send_prompt(prompt, callback, conversation_history)
-  vim.notify("custom_ai.nvim: AI thinking...", vim.log.levels.INFO)
+  log_info("custom_ai.nvim: AI thinking...")
 
   local history = conversation_history or state.messages
 
@@ -938,7 +932,7 @@ setup_keymaps = function(buf, win, messages, detected_vision)
       M.send_prompt(user_input, function(response)
         if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
         M.write_to_buf(buf, win, { "AI: " .. response, "" })
-        vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
+        log_info("custom_ai.nvim: AI responded!")
       end, messages)
     end)
   end)
@@ -957,7 +951,7 @@ setup_keymaps = function(buf, win, messages, detected_vision)
               if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
               M.write_to_buf(buf, win, { "", "You: " .. user_input .. " [no image]", "AI: ..." })
               M.write_to_buf(buf, win, { "AI: " .. response, "" })
-              vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
+              log_info("custom_ai.nvim: AI responded!")
             end, messages)
             return
           end
@@ -979,7 +973,7 @@ setup_keymaps = function(buf, win, messages, detected_vision)
           M.send_prompt(content_parts, function(response)
             if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
             M.write_to_buf(buf, win, { "AI: " .. response, "" })
-            vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
+            log_info("custom_ai.nvim: AI responded!")
           end, messages)
         end)
       end)
@@ -1073,6 +1067,52 @@ end
 -- ---------------------------------------------------------------------------
 -- Chat window
 -- ---------------------------------------------------------------------------
+
+-- New chat (clear history)
+function M.new_chat()
+  if state.win and vim.api.nvim_win_is_valid(state.win) then
+    pcall(vim.api.nvim_win_close, state.win, true)
+  end
+  if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+    pcall(vim.api.nvim_buf_delete, state.buf, { force = true })
+  end
+
+  local new_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_name(new_buf, "AI Chat")
+  local detected_vision = state.detected_vision
+  vim.api.nvim_buf_set_lines(new_buf, 0, -1, false, {
+    "=== AI Chat (llama.cpp) ===",
+    "Server: " .. api_url(),
+    "Model: " .. tostring(config.default_model),
+    "Vision: " .. (detected_vision and "enabled" or "disabled"),
+    "Press '" .. config.keymaps.send_msg .. "' to send a message",
+    "Press '<leader>av' to send a message + image (vision)",
+    "Press '" .. config.keymaps.edit_code .. "' to edit code in place",
+    "Press '" .. config.keymaps.ask_file .. "' to ask about this file",
+    "Press '" .. config.keymaps.new_chat .. "' to start a NEW chat",
+    "Press '" .. config.keymaps.toggle_chat .. "' to toggle hide/show",
+    "",
+  })
+
+  local new_win = vim.api.nvim_open_win(new_buf, true, {
+    relative = "editor",
+    width = math.floor(vim.o.columns * 0.4),
+    height = math.floor(vim.o.lines * 0.8),
+    row = math.floor(vim.o.lines * 0.1),
+    col = math.floor(vim.o.columns * 0.55),
+    style = "minimal",
+    border = "rounded",
+  })
+
+  state.messages = {}
+  setup_keymaps(new_buf, new_win, state.messages, state.detected_vision)
+
+  vim.api.nvim_set_option_value("modifiable", false, { buf = new_buf })
+  vim.api.nvim_set_option_value("readonly", true, { buf = new_buf })
+
+  state.buf = new_buf
+  state.win = new_win
+end
 
 function M.chat()
   M.refresh_model()
@@ -1224,7 +1264,7 @@ function M.ask()
         "A: " .. response,
         "======================",
       })
-      vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
+      log_info("custom_ai.nvim: AI responded!")
     end, state.messages)
   end)
 end
@@ -1260,7 +1300,7 @@ function M.ask_file()
         "A: " .. response,
         "======================",
       })
-      vim.notify("custom_ai.nvim: AI responded!", vim.log.levels.INFO)
+      log_info("custom_ai.nvim: AI responded!")
     end, state.messages)
   end)
 end
@@ -1363,7 +1403,7 @@ function M.run_tests()
         response,
         "======================",
       })
-      vim.notify("custom_ai.nvim: AI analyzed test results!", vim.log.levels.INFO)
+      log_info("custom_ai.nvim: AI analyzed test results!")
     end, state.messages)
   end
 
@@ -1414,157 +1454,142 @@ function M.edit_code()
     if not input or input == "" then return end
 
     local full_prompt = [[You are a code editor. Edit the following file content based on the user's instruction.
-Return ONLY the modified file content, no explanations, no markdown code blocks.
+
+Return ONLY the complete edited file content, no explanations, no markdown, no commentary.
 
 File: ]] .. file_path .. [[
+
+User instruction: ]] .. input .. [[
 
 Current content:
 ]] .. content .. [[
 
-Instruction: ]] .. input
+Edited content:
+]]
 
-    vim.notify("custom_ai.nvim: AI editing " .. display_name .. "...", vim.log.levels.INFO)
+    vim.notify("custom_ai.nvim: Editing file...", vim.log.levels.INFO)
 
     M.send_prompt(full_prompt, function(response)
-      if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
+      if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then return end
 
-      local edited = response:gsub("```%w*\n", ""):gsub("```$", ""):gsub("^```", "")
-      local new_lines = vim.split(edited, "\n")
+      -- Try to extract code block if present
+      local edited = response
+      local code_block = response:match("```[%w%_%-]*\n(.-)\n```")
+      if code_block then
+        edited = code_block
+      end
 
-      vim.api.nvim_set_option_value("modifiable", true, { buf = buf })
+      -- Apply edit
+      local new_lines = {}
+      for line in edited:gmatch("([^\n]*)\n?") do
+        table.insert(new_lines, line)
+      end
+      if #new_lines > 0 and new_lines[#new_lines] == "" then
+        table.remove(new_lines)
+      end
+
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, new_lines)
-      vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
 
-      vim.notify("custom_ai.nvim: File edited: " .. display_name, vim.log.levels.INFO)
+      M.write_to_buf(state.buf, state.win, {
+        "\n======================",
+        "=== Edit Applied ===",
+        "File: " .. display_name,
+        "Instruction: " .. input,
+        "Lines: " .. #new_lines,
+        "======================",
+      })
+      log_info("custom_ai.nvim: File edited!")
     end, state.messages)
   end)
 end
 
 function M.edit_selection()
   local buf = vim.api.nvim_get_current_buf()
-  local file_path = vim.api.nvim_buf_get_name(buf)
+  local mode = vim.api.nvim_get_mode().mode
 
-  if not file_path or file_path == "" then
-    vim.notify("custom_ai.nvim: no file is open rn", vim.log.levels.WARN)
-    return
-  end
-
-  local display_name = vim.fn.fnamemodify(file_path, ":t")
-
-  local start_pos = vim.fn.getpos("'<")
-  local end_pos = vim.fn.getpos("'>")
-  local start_line = start_pos[2]
-  local end_line = end_pos[2]
-  local start_col = start_pos[3]
-  local end_col = end_pos[3]
-
-  local all_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  local full_content = table.concat(all_lines, "\n")
-
-  local selected_lines = {}
-  if start_line == end_line then
-    local line = all_lines[start_line]
-    if line then
-      table.insert(selected_lines, line:sub(start_col, end_col))
+  local start_line, end_line
+  if mode == "v" or mode == "V" or mode == "\22" then -- visual, line-visual, block-visual
+    local v_start = vim.fn.getpos("'<")
+    local v_end = vim.fn.getpos("'>")
+    start_line = v_start[2]
+    end_line = v_end[2]
+    if start_line > end_line then
+      start_line, end_line = end_line, start_line
     end
   else
-    for i = start_line, end_line do
-      local line = all_lines[i]
-      if line then
-        if i == start_line then
-          table.insert(selected_lines, line:sub(start_col))
-        elseif i == end_line then
-          table.insert(selected_lines, line:sub(1, end_col))
-        else
-          table.insert(selected_lines, line)
-        end
-      end
-    end
+    -- No visual selection; use current line
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    start_line = cursor[1]
+    end_line = cursor[1]
   end
 
-  local selection = table.concat(selected_lines, "\n")
-
-  if not selection or selection == "" then
-    vim.notify("custom_ai.nvim: no text selected", vim.log.levels.WARN)
-    return
-  end
+  local lines = vim.api.nvim_buf_get_lines(buf, start_line - 1, end_line, false)
+  local selection = table.concat(lines, "\n")
 
   if not open_chat() then return end
 
   vim.ui.input({ prompt = "Edit instruction for selection: " }, function(input)
     if not input or input == "" then return end
 
-    local full_prompt = [[You are a code editor. Edit the following SELECTED TEXT based on the user's instruction.
+    local full_prompt = [[You are a code editor. Edit the following code selection based on the user's instruction.
 
-The full file is provided for context (file: ]] .. file_path .. [[). Only modify the selected text, keep everything else the same.
-Return ONLY the modified selected text, no explanations, no markdown code blocks.
+Return ONLY the edited code, no explanations, no markdown, no commentary.
 
-Full file content:
-]] .. full_content .. [[
+User instruction: ]] .. input .. [[
 
-
-SELECTED TEXT TO EDIT:
+Current selection:
 ]] .. selection .. [[
 
+Edited selection:
+]]
 
-Edit instruction: ]] .. input
-
-    vim.notify("custom_ai.nvim: AI editing selection in " .. display_name .. "...", vim.log.levels.INFO)
+    vim.notify("custom_ai.nvim: Editing selection...", vim.log.levels.INFO)
 
     M.send_prompt(full_prompt, function(response)
-      if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
+      if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then return end
 
-      local edited = response:gsub("```%w*\n", ""):gsub("```$", ""):gsub("^```", "")
-      local new_lines = vim.split(edited, "\n")
+      local edited = response
+      local code_block = response:match("```[%w%_%-]*\n(.-)\n```")
+      if code_block then
+        edited = code_block
+      end
 
-      vim.api.nvim_set_option_value("modifiable", true, { buf = buf })
+      local new_lines = {}
+      for line in edited:gmatch("([^\n]*)\n?") do
+        table.insert(new_lines, line)
+      end
+      if #new_lines > 0 and new_lines[#new_lines] == "" then
+        table.remove(new_lines)
+      end
+
       vim.api.nvim_buf_set_lines(buf, start_line - 1, end_line, false, new_lines)
-      vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
 
-      vim.notify("custom_ai.nvim: Selection edited: " .. display_name, vim.log.levels.INFO)
+      M.write_to_buf(state.buf, state.win, {
+        "\n======================",
+        "=== Selection Edited ===",
+        "Lines: " .. start_line .. "-" .. end_line,
+        "Instruction: " .. input,
+        "New lines: " .. #new_lines,
+        "======================",
+      })
+      log_info("custom_ai.nvim: Selection edited!")
     end, state.messages)
   end)
 end
 
-function M.new_chat()
-  state.messages = {}
-  state.detected_model = nil
-  -- Keep state.detected_vision - vision detection runs async in M.chat()
-  if state.win and vim.api.nvim_win_is_valid(state.win) then
-    pcall(vim.api.nvim_win_close, state.win, true)
-    state.win = nil
-  end
-  if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
-    pcall(vim.api.nvim_buf_delete, state.buf, { force = true })
-    state.buf = nil
-  end
-  vim.notify("custom_ai.nvim: New chat started — history cleared", vim.log.levels.INFO)
-end
-
--- Export detect_running_model for external access
-M.detect_running_model = detect_running_model
-
-
--- Toggle AI completion on/off
 function M.toggle_completion()
   state.completion_enabled = not state.completion_enabled
-  -- Keep config.completion.enabled in sync so the blink.cmp source's enabled()
-  -- closure (which reads config_ref.completion.enabled) reflects the toggle.
-  if config.completion then
-    config.completion.enabled = state.completion_enabled
-  end
-  vim.notify("AI Completion: " .. (state.completion_enabled and "enabled" or "disabled"), vim.log.levels.INFO)
-  -- Re-register blink.cmp source to reflect the change
+  local status = state.completion_enabled and "enabled" or "disabled"
+  vim.notify("custom_ai.nvim: AI completion " .. status, vim.log.levels.INFO)
+
+  -- Update blink.cmp source enabled state
   local ok, blink = pcall(require, "blink.cmp")
-  if ok and blink.config and blink.config.sources then
-    local providers = blink.config.sources.providers or {}
-    if providers.custom_ai then
-      providers.custom_ai.opts = providers.custom_ai.opts or {}
-      providers.custom_ai.opts.enabled = function() return state.completion_enabled end
+  if ok and blink.config and blink.config.sources and blink.config.sources.providers then
+    if blink.config.sources.providers.custom_ai then
+      blink.config.sources.providers.custom_ai.enabled = state.completion_enabled
+      -- Note: blink.cmp may need refresh; user can toggle off/on
     end
   end
 end
 
--- User command to toggle completion
-vim.api.nvim_create_user_command("AICompletionToggle", M.toggle_completion, { desc = "Toggle AI completion on/off" })
 return M

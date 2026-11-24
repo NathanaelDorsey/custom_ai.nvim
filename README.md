@@ -17,18 +17,20 @@ Designed for single-GPU setups (e.g. 8GB VRAM) where you run one model at a time
 | **Code editing** | Edit whole file or highlighted selection with full-file context |
 | **Test analysis** | Run tests, truncate output, send to AI for analysis |
 | **Inline completion** | AI code completions via blink.cmp with project context |
+| **Container-aware** | Auto-starts podman/docker container if not running |
 | **Configurable** | Models, scripts, keymaps, server URL all configurable via `setup()` |
 
 ## Installation
 
 ### With [lazy.nvim](https://github.com/folke/lazy.nvim)
 
+**Option 1: Inline config**
 ```lua
 {
-  "your-username/custom_ai.nvim",
+  dir = "~/custom_ai.nvim",  -- or your repo
   config = function()
     require("custom_ai").setup({
-      server = { host = "127.0.0.1", port = 9931 },
+      server = { host = "127.0.0.1", port = 9931, container = "cuda-dev" },
       models = {
         allrounder = "My Model (allrounder: 65K, reasoning, tools)",
         coder      = "My Coder Model (coder: 24K, reasoning, tools)",
@@ -46,6 +48,33 @@ Designed for single-GPU setups (e.g. 8GB VRAM) where you run one model at a time
 }
 ```
 
+**Option 2: Separate config file (recommended)**
+
+Copy `lua/custom_ai/config/user_example.lua` to your config:
+
+```bash
+# Linux/macOS
+cp ~/custom_ai.nvim/lua/custom_ai/config/user_example.lua ~/.config/nvim/lua/custom_ai_config.lua
+
+# Windows
+copy %USERPROFILE%\custom_ai.nvim\lua\custom_ai\config\user_example.lua %LOCALAPPDATA%\nvim\lua\custom_ai_config.lua
+```
+
+Edit `custom_ai_config.lua` with your models/scripts, then:
+
+```lua
+{
+  dir = "~/custom_ai.nvim",
+  config = function()
+    local ok, user_config = pcall(require, "custom_ai_config")
+    if not ok then user_config = {} end
+    require("custom_ai").setup(user_config)
+  end,
+}
+```
+
+This keeps your personal config separate from the plugin — easy to update the plugin without losing your settings.
+
 ### Manual
 
 Copy `lua/custom_ai/init.lua` into your Neovim config (e.g. `~/.config/nvim/lua/custom_ai/init.lua`):
@@ -53,7 +82,7 @@ Copy `lua/custom_ai/init.lua` into your Neovim config (e.g. `~/.config/nvim/lua/
 ```lua
 local custom_ai = require("custom_ai")
 custom_ai.setup({
-  server = { host = "127.0.0.1", port = 9931 },
+  server = { host = "127.0.0.1", port = 9931, container = nil },
   -- ... see Configuration below
 })
 
@@ -70,10 +99,20 @@ require("custom_ai").setup({
   server = {
     host = "127.0.0.1",
     port = 9931,
+    -- container: nil/false = run on host, string = podman/docker container name
+    --   container = "cuda-dev"     -- podman/distrobox container name
+    --   container = "llama-server" -- docker container name
+    --   container = nil            -- run llama-server directly on host
+    container = nil,
   },
+
+  -- Verbose logging: true = show INFO messages, false = only WARN/ERROR (default: false)
+  verbose = false,
 
   -- Model definitions: key -> display name
   -- Used for auto-detection matching and display
+  -- Defaults (5 models): allrounder, coder, specialist, efficient, vision
+  -- Override or add your own in custom config
   models = {
     allrounder = "Nemotron-Bolt-E4B Q5_K (allrounder: 65K, reasoning, tools)",
     coder      = "Qwen3 8B Q4 (coder: 24K, reasoning, tools)",
@@ -97,6 +136,7 @@ require("custom_ai").setup({
   top_p       = 0.8,
 
   -- Startup scripts (run these in a terminal to start llama-server)
+  -- Keys must match models table
   scripts = {
     allrounder = "~/llama/scripts/start-allrounder.sh",
     coder      = "~/llama/scripts/start-coder.sh",
@@ -104,6 +144,12 @@ require("custom_ai").setup({
     efficient  = "~/llama/scripts/start-efficient.sh",
     vision     = "~/llama/scripts/start-vision.sh",
   },
+
+  -- Vision detection keywords (filename patterns for auto-detection)
+  vision_keywords = { "llava", "bakllava", "llava-next", "llava-1.5", "llava-1.6", "vision", "inkling" },
+
+  -- Enable API probe for vision capability (sends test image to /v1/chat/completions)
+  vision_probe = true,
 
   -- Test commands for <leader>at
   test_commands = {
@@ -118,23 +164,71 @@ require("custom_ai").setup({
 
   -- Keymaps (all use <leader>a prefix by default)
   keymaps = {
-    send_msg      = "<leader>as",   -- Send message (text only)
-    vision_msg    = "<leader>av",   -- Send message + image (vision)
-    new_chat      = "<leader>an",   -- New chat (clear history)
-    toggle_chat   = "<leader>.",    -- Toggle chat window
-    run_tests     = "<leader>at",   -- Run tests -> AI
-    edit_code     = "<leader>ae",   -- Edit whole file with AI
-    ask_file      = "<leader>af",   -- Ask about current file
-    edit_sel      = "<leader>ah",   -- Edit highlighted selection
-    show_scripts  = "<leader>ai",   -- Show startup scripts reminder
-    switch_model  = "<leader>am",   -- Switch AI model
-    refresh_model = "<leader>ar",   -- Refresh model detection
+    send_msg           = "<leader>as",   -- Send message (text only)
+    vision_msg         = "<leader>av",   -- Send message + image (vision models)
+    new_chat           = "<leader>an",   -- New chat (clear history)
+    toggle_chat        = "<leader>.",    -- Toggle chat window show/hide
+    run_tests          = "<leader>at",   -- Run tests -> AI analysis
+    edit_code          = "<leader>ae",   -- Edit code in place (whole file)
+    ask_file           = "<leader>af",   -- Ask AI about current file
+    edit_sel           = "<leader>ah",   -- AI edit highlighted selection
+    show_scripts       = "<leader>ai",   -- Show startup scripts reminder
+    switch_model       = "<leader>am",   -- Switch AI model
+    refresh_model      = "<leader>ar",   -- Refresh model detection
+    toggle_completion  = "<leader>ac",   -- Toggle AI completion on/off
+    completion_trigger = "<C-space>",    -- Manual AI completion trigger (insert mode)
   },
 
   -- Keymap scope: true = global (work anywhere), false = buffer-local (chat window only)
-  -- Default: true — all keymaps work globally. Set to false to restrict chat keymaps
-  -- (send_msg, vision_msg, new_chat, toggle_chat) to the chat window only.
   global_keymaps = true,
+
+  -- Completion configuration
+  completion = {
+    enabled = true,
+    keymap = "<C-space>",
+    trigger_chars = {},
+    max_items = 5,
+    -- Global defaults (used as base for deep merge)
+    temperature = 0.2,
+    top_p = 0.8,
+    max_tokens = 64,
+    stop_sequences = { "\n" },
+    max_lines = 1,
+    prompt_template = nil,
+    -- Filetype-specific overrides (merged on top of model_config.completion)
+    filetypes = {
+      lua = { max_lines = 10, temperature = 0.1, top_p = 0.95 },
+      python = { max_lines = 5, temperature = 0.1, top_p = 0.9 },
+      javascript = { max_lines = 8, temperature = 0.2 },
+      typescript = { max_lines = 8, temperature = 0.2 },
+      go = { max_lines = 10, temperature = 0.15 },
+      rust = { max_lines = 15, temperature = 0.15 },
+      c = { max_lines = 5, temperature = 0.1 },
+      cpp = { max_lines = 5, temperature = 0.1 },
+      java = { max_lines = 8, temperature = 0.15 },
+      html = { max_lines = 3, temperature = 0.2 },
+      css = { max_lines = 3, temperature = 0.2 },
+      json = { max_lines = 1, temperature = 0.05 },
+      yaml = { max_lines = 3, temperature = 0.1 },
+      markdown = { max_lines = 3, temperature = 0.3 },
+      sql = { max_lines = 5, temperature = 0.1 },
+      sh = { max_lines = 3, temperature = 0.1 },
+      bash = { max_lines = 3, temperature = 0.1 },
+      zsh = { max_lines = 3, temperature = 0.1 },
+      fish = { max_lines = 3, temperature = 0.1 },
+      dockerfile = { max_lines = 3, temperature = 0.1 },
+      toml = { max_lines = 3, temperature = 0.1 },
+    },
+  },
+
+  -- Context gathering for completions (LSP + treesitter)
+  context = {
+    max_tokens = 2000,
+    include_imports = true,
+    include_types = true,
+    include_tests = true,
+    max_related_files = 3,
+  },
 })
 ```
 
@@ -278,6 +372,28 @@ Context is assembled and truncated to fit within `context.max_tokens` (default 2
 
 ---
 
+## Container Support
+
+The plugin can auto-start a podman/docker container for `llama-server`:
+
+```lua
+server = {
+  host = "127.0.0.1",
+  port = 9931,
+  container = "cuda-dev",  -- podman/distrobox container name
+}
+```
+
+**Behavior:**
+- Container running → proceeds normally
+- Container stopped → auto-starts it, then runs your startup script
+- Container doesn't exist → shows ERROR, doesn't run script
+- `container = nil` (default) → runs on host directly
+
+Your startup scripts should use `podman exec` or `distrobox-enter` to run inside the container.
+
+---
+
 ## Workflow
 
 1. **Start a server** in a terminal:
@@ -297,9 +413,32 @@ Context is assembled and truncated to fit within `context.max_tokens` (default 2
 
 > **Note:** `:AIChat` works even when `global_keymaps = false` since it's a command, not a keymap.
 
+## Default Models
+
+The plugin ships with 5 default models (in `lua/custom_ai/config/models.lua`):
+
+| Key | Description |
+|-----|-------------|
+| `allrounder` | General purpose (Nemotron, Qwen, etc.) |
+| `coder` | Code-specialized (Qwen2.5-Coder, Qwen3) |
+| `specialist` | High-quality code (Qwen2.5-Coder 7B Q6_K) |
+| `efficient` | Small/fast (Qwen3.5 4B Q8) |
+| `vision` | Multimodal (LLaVA-NeXT, BakLLaVA) |
+
+**To customize:** Add/override models in your `custom_ai_config.lua`:
+```lua
+models = {
+  allrounder = "My Allrounder (65K)",
+  coder      = "My Coder (32K)",
+  vision     = "BakLLaVA 7B Q4 (vision)",
+  my_model   = "Custom Model (128K)",  -- add more
+}
+```
+
 ## Requirements
 
 - Neovim 0.10+
 - A running `llama-server` instance (from [llama.cpp](https://github.com/ggerganov/llama.cpp))
 - `curl` available in PATH
 - `bash` available for starting server scripts
+- `podman` or `docker` (optional, for container support)
