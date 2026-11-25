@@ -56,6 +56,8 @@ Apply these patterns at system boundaries:
 - **Error handling**: `vim.notify()` with appropriate log level (INFO/WARN/ERROR)
 - **Temp files**: Use `vim.fn.tempname()` for large payloads (base64 images)
 - **Model detection**: Query `/v1/models` endpoint, match filename to config keys
+- **Startup scripts**: Each model has a dedicated launcher in `llama/scripts/` with KV q4_0 cache, optimized batch sizes, and model-specific GPU layers
+- **Container support**: Auto-starts configured podman container if not running
 
 ## § Code Style
 
