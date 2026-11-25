@@ -46,8 +46,7 @@ return {
     -- The plugin will AUTO-START the container if stopped.
     --
     -- Examples:
-    --   container = "cuda-dev"     -- podman/distrobox container name
-    --   container = "llama-server" -- docker container name
+    --   container = "cuda-dev"     -- docker/podman/distrobox container name
     --   container = nil            -- run llama-server directly on host
     container = nil,
   },
