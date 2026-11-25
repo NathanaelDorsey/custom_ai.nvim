@@ -100,8 +100,7 @@ require("custom_ai").setup({
     host = "127.0.0.1",
     port = 9931,
     -- container: nil/false = run on host, string = podman/docker container name
-    --   container = "cuda-dev"     -- podman/distrobox container name
-    --   container = "llama-server" -- docker container name
+    --   container = "cuda-dev"     -- docker/podman/distrobox container name
     --   container = nil            -- run llama-server directly on host
     container = nil,
   },
